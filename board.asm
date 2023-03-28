@@ -51,13 +51,8 @@ initializeBoard:
 	
 	
 initializeBoardRowLoop:
-	bge $t2, $t0, initializeBoardExit
-		
-	andi $t5, $t2, 0x01
-	beqz $t5, initializeBoardInnerLoopStart
-	
-	addi $t2, $t2, 1
-	j initializeBoardRowLoop
+	blt $t2, $t0, initializeBoardInnerLoopStart 
+	j initializeBoardExit
 
 initializeBoardInnerLoopStart:
 	li $t3, 0
@@ -71,14 +66,19 @@ initializeBoardChar:
 	add $t4, $t4, $t3
 	add $t4, $a1, $t4
 	
-	andi $t5, $t3, 0x01 # Check if col is even
-	addi $t3, $t3, 1 # increment counter
+	andi $t5, $t2, 0x01
 	bnez $t5, loadSpace
 	
-	lb $t5, boardSymbolChar # Symbol char == '+'
+	andi $t5, $t3, 0x01 # Check if col is even
+	bnez $t5, loadSpace
+	
+	addi $t3, $t3, 1 # increment counter
+	
+	lb $t5, boardSymbolChar                 # Symbol char == '+'
 	j initializeBoardAddChar
 	
 loadSpace:
+	addi $t3, $t3, 1 # increment counter
 	lb $t5, spaceChar
 	
 initializeBoardAddChar:
@@ -111,7 +111,7 @@ printBoard:
 	sw $t3, 16($sp)
 	sw $t5, 20($sp)
 	sw $a1, 24($sp)
-	
+		
 	la $a1, boardArray			# Load address of boardArray
 	la $t0, boardRowSize			# Load row size address
 	lb $t0, ($t0)				# Set row size to $t0
@@ -140,7 +140,7 @@ printBoardInnerLoopStart:
 	li $v0, 11
 	syscall
 	
-	slti $t5, $t2, 10
+	slti $t5, $t2, 9
 	beq  $t5, $0, printBoardInnerLoop
 	
 	li $v0, 11
