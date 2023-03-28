@@ -21,15 +21,9 @@
         
 .text
 initializeBoard:
-        addi $sp, $sp, -32       # Make room in stack
+        addi $sp, $sp, -8        # Make room in stack
         sw $ra, 0($sp)           # Store return address in stack
-        sw $t0, 4($sp)           # Store t0 register in stack
-        sw $t1, 8($sp)           # Store t1 register in stack
-        sw $t2, 12($sp)          # Store t2 register in stack
-        sw $t3, 16($sp)          # Store t3 register in stack
-        sw $t4, 20($sp)          # Store t4 register in stack
-        sw $t5, 24($sp)          # Store t5 register in stack
-        sw $a1, 28($sp)          # Store a1 register in stack
+        sw $a1, 4($sp)           # Store a1 register in stack
 
         la $a1, boardArray       # Load address of the array into $a1
         la $t0, boardRowSize     # Load rowSize address into $t0
@@ -80,27 +74,16 @@ initializeBoardColumnLoopEnd:
         j initializeBoardRowLoop    # Process next row in array
         
 initializeBoardExit:
-        lw $a1, 28($sp)             # Load a1 register from stack
-        lw $t5, 24($sp)             # Load t5 register from stack
-        lw $t4, 20($sp)             # Load t4 register from stack
-        lw $t3, 16($sp)             # Load t3 register from stack
-        lw $t2, 12($sp)             # Load t2 register from stack
-        lw $t1, 8($sp)              # Load t1 register from stack
-        lw $t0, 4($sp)              # Load t0 register from stack
+        lw $a1, 4($sp)              # Load a1 register from stack
         lw $ra, 0($sp)              # Load return address from stack
-        addi $sp, $sp, 32           # Restore the stack
+        addi $sp, $sp, 8            # Restore the stack
 
         jr $ra                      # Jump to return address
 
 printBoard:
-        addi $sp, $sp, -28          # Make room in stack
+        addi $sp, $sp, -8           # Make room in stack
         sw $ra, 0($sp)              # Store return address in stack
-        sw $t0, 4($sp)              # Store t0 register in stack
-        sw $t1, 8($sp)              # Store t1 register in stack
-        sw $t2, 12($sp)             # Store t2 register in stack
-        sw $t3, 16($sp)             # Store t3 register in stack
-        sw $t4, 20($sp)             # Store t4 register in stack
-        sw $a1, 24($sp)             # Store a1 register in stack
+        sw $a1, 4($sp)              # Store a1 register in stack
                 
         la $a1, boardArray          # Load address of the array into $a1
         la $t0, boardRowSize        # Load rowSize address into $t0
@@ -167,14 +150,9 @@ printBoardColumnLoopEnd:
         j printBoardRowLoop          # Move on to next row
         
 printBoardExit:
-        lw $a1, 24($sp)              # Load a1 register from stack
-        lw $t4, 20($sp)              # Load t4 register from stack
-        lw $t3, 16($sp)              # Load t3 register from stack
-        lw $t2, 12($sp)              # Load t2 register from stack
-        lw $t1, 8($sp)               # Load t1 register from stack
-        lw $t0, 4($sp)               # Load t0 register from stack
+        lw $a1, 4($sp)               # Load a1 register from stack
         lw $ra, 0($sp)               # Load return address from stack
-        addi $sp, $sp, 28            # Restore the stack
+        addi $sp, $sp, 8             # Restore the stack
         
         jr $ra                       # Jump to return address
 
