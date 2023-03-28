@@ -9,193 +9,188 @@
 # I'll add comments to this later -ND
 
 .data
-	boardRowSize: .byte 11
-	boardColumnSize: .byte 15
-	boardSymbolChar: .byte '+'
-	spaceChar: .byte ' '
-	boardArray: .space 165
-	boardArraySize: .half 165
-	boardHeaderString: .asciiz "   A B C D E F G H I J K L M N O \n   -----------------------------\n"
-	
+        boardRowSize:      .byte 11
+        boardColumnSize:   .byte 15
+        boardSymbolChar:   .byte '+'
+        spaceChar:         .byte ' '
+        boardArray:        .space 165
+        boardArraySize:    .half 165
+        boardHeaderString: .asciiz "   A B C D E F G H I J K L M N O \n   -----------------------------\n"
+        .globl main
+        
 .text
 main:
-	addi $sp, $sp, -4
-	sw $ra, 0($sp)
+        addi $sp, $sp, -4        # Make room in stack
+        sw $ra, 0($sp)           # Store return address in stack
 
-	jal initializeBoard
-	jal printBoard
-	
-	lw $ra, 0($sp)
-	addi $sp, $sp, 4
+        jal initializeBoard      # Jump and link initializeBoard subroutine
+        jal printBoard           # Jump and link printBoard subroutine
+        
+        lw $ra, 0($sp)           # Load return address from stack
+        addi $sp, $sp, 4         # Restore the stack
 
-	j Exit
+        j Exit                   # Jump to Exit subroutine
 
 initializeBoard:
-	addi $sp, $sp, -32
-	sw $ra, 0($sp)
-	sw $t0, 4($sp)
-	sw $t1, 8($sp)
-	sw $t2, 12($sp)
-	sw $t3, 16($sp)
-	sw $t4, 20($sp)
-	sw $t5, 24($sp)
-	sw $a1, 28($sp)
+        addi $sp, $sp, -32       # Make room in stack
+        sw $ra, 0($sp)           # Store return address in stack
+        sw $t0, 4($sp)           # Store t0 register in stack
+        sw $t1, 8($sp)           # Store t1 register in stack
+        sw $t2, 12($sp)          # Store t2 register in stack
+        sw $t3, 16($sp)          # Store t3 register in stack
+        sw $t4, 20($sp)          # Store t4 register in stack
+        sw $t5, 24($sp)          # Store t5 register in stack
+        sw $a1, 28($sp)          # Store a1 register in stack
 
-	la $a1, boardArray
-	la $t0, boardRowSize	# Load row size address == 11
-	lb $t0, ($t0)				# Set row size to $t0
-	la $t1, boardColumnSize  			# Load row size address == 15
-	lb $t1, ($t1)				# set col size to $t1
-	li $t2, 0      				# Row counter
-	li $t3, 0					# Column counter
-	
-	
+        la $a1, boardArray       # Load address of the array into $a1
+        la $t0, boardRowSize     # Load rowSize address into $t0
+        lb $t0, ($t0)            # Set $t0 to rowSize integer
+        la $t1, boardColumnSize  # Load colSize address into $t1
+        lb $t1, ($t1)            # Set $t1 to colSize integer
+        li $t2, 0                # Initialize row index to 0
+        li $t3, 0                # Initialize col index to 0 (not needed here but helps know which reg it's in)
+        
+        
 initializeBoardRowLoop:
-	blt $t2, $t0, initializeBoardInnerLoopStart 
-	j initializeBoardExit
+        blt $t2, $t0, initializeBoardColumnLoopStart  # If row index is less than the amount of rows, loop column 
+        j initializeBoardExit                         # Else, exit the loop
 
-initializeBoardInnerLoopStart:
-	li $t3, 0
-	
-initializeBoardInnerLoop:
-	blt $t3, $t1, initializeBoardChar
-	j initializeBoardInnerLoopEnd
-	
+initializeBoardColumnLoopStart:
+        li $t3, 0                                     # Reset column index to 0
+        
+initializeBoardColumnLoop:
+        blt $t3, $t1, initializeBoardChar             # Jump if column index is less that the total columns in a row
+        j initializeBoardColumnLoopEnd                # Processed to next row
+        
 initializeBoardChar:
-	mul $t4, $t2, $t1
-	add $t4, $t4, $t3
-	add $t4, $a1, $t4
-	
-	andi $t5, $t2, 0x01
-	bnez $t5, loadSpace
-	
-	andi $t5, $t3, 0x01 # Check if col is even
-	bnez $t5, loadSpace
-	
-	addi $t3, $t3, 1 # increment counter
-	
-	lb $t5, boardSymbolChar                 # Symbol char == '+'
-	j initializeBoardAddChar
-	
+        mul $t4, $t2, $t1           # Multiply the row we're on by total columns
+        add $t4, $t4, $t3           # Add column index to $t4 to get current element index
+        add $t4, $a1, $t4           # Set $t4 to current cell address in array
+        
+        andi $t5, $t2, 0x01         # Check if row index is even
+        bnez $t5, loadSpace         # If odd, insert a space in the cell
+        
+        andi $t5, $t3, 0x01         # Check if the column index is even
+        bnez $t5, loadSpace         # If odd, insert a space in the cell
+        
+        addi $t3, $t3, 1            # Increment counter
+        
+        lb $t5, boardSymbolChar     # Load boardSymbolChar in $t5 for insertion
+        j initializeBoardAddChar    # Jump to label that inserts char in array
+        
 loadSpace:
-	addi $t3, $t3, 1 # increment counter
-	lb $t5, spaceChar
-	
+        addi $t3, $t3, 1            # Increment column index
+        lb $t5, spaceChar           # Load space into $t5 for insertion
+        
 initializeBoardAddChar:
-	sb $t5, ($t4)
-	j initializeBoardInnerLoop
-	
-initializeBoardInnerLoopEnd:
-	addi $t2, $t2, 1
-	j initializeBoardRowLoop
-	
+        sb $t5, ($t4)               # Store the character in the array
+        j initializeBoardColumnLoop # Process next cell in row
+        
+initializeBoardColumnLoopEnd:
+        addi $t2, $t2, 1            # Increment row index
+        j initializeBoardRowLoop    # Process next row in array
+        
 initializeBoardExit:
-	lw $a1, 28($sp)
-	lw $t5, 24($sp)
-	lw $t4, 20($sp)
-	lw $t3, 16($sp)
-	lw $t2, 12($sp)
-	lw $t1, 8($sp)
-	lw $t0, 4($sp)
-	lw $ra, 0($sp)
-	addi $sp, $sp, 32
+        lw $a1, 28($sp)             # Load a1 register from stack
+        lw $t5, 24($sp)             # Load t5 register from stack
+        lw $t4, 20($sp)             # Load t4 register from stack
+        lw $t3, 16($sp)             # Load t3 register from stack
+        lw $t2, 12($sp)             # Load t2 register from stack
+        lw $t1, 8($sp)              # Load t1 register from stack
+        lw $t0, 4($sp)              # Load t0 register from stack
+        lw $ra, 0($sp)              # Load return address from stack
+        addi $sp, $sp, 32           # Restore the stack
 
-	jr $ra
+        jr $ra                      # Jump to return address
 
 printBoard:
-	addi $sp, $sp, -28
-	sw $ra, 0($sp)
-	sw $t0, 4($sp)
-	sw $t1, 8($sp)
-	sw $t2, 12($sp)
-	sw $t3, 16($sp)
-	sw $t5, 20($sp)
-	sw $a1, 24($sp)
-		
-	la $a1, boardArray			# Load address of boardArray
-	la $t0, boardRowSize			# Load row size address
-	lb $t0, ($t0)				# Set row size to $t0
-	la $t1, boardColumnSize     		# Load row size address
-	lb $t1, ($t1)				# set col size to $t1
-	li $t2, 0      				# Row counter
-	li $t3, 0				# Column counter
-	li $t4, 1				# Row num counter
+        addi $sp, $sp, -28          # Make room in stack
+        sw $ra, 0($sp)              # Store return address in stack
+        sw $t0, 4($sp)              # Store t0 register in stack
+        sw $t1, 8($sp)              # Store t1 register in stack
+        sw $t2, 12($sp)             # Store t2 register in stack
+        sw $t3, 16($sp)             # Store t3 register in stack
+        sw $t4, 20($sp)             # Store t4 register in stack
+        sw $a1, 24($sp)             # Store a1 register in stack
+                
+        la $a1, boardArray          # Load address of the array into $a1
+        la $t0, boardRowSize        # Load rowSize address into $t0
+        lb $t0, ($t0)               # Set $t0 to rowSize integer
+        la $t1, boardColumnSize     # Load colSize address into $t1
+        lb $t1, ($t1)               # Set $t1 to colSize integer
+        li $t2, 0                   # Initialize row index to 0
+        li $t3, 0                   # Initialize col index to 0 (not needed here but helps know which reg it's in)
 
-	la $a0, boardHeaderString
-	li $v0, 4
-	syscall
+        la $a0, boardHeaderString   # Load address for boardHeaderString
+        li $v0, 4                   # Syscall for print string
+        syscall                     # Print boardHeaderString
 
-		
-printBoardOuter:
-	blt $t2, $t0, printBoardInnerLoopStart #
-	j printBoardExit
-	
-printBoardInnerLoopStart:
-	li $t3, 0
-	
-	addi $a0, $t2, 1
-	li $v0, 1
-	syscall
-	li $a0, ' '
-	li $v0, 11
-	syscall
-	
-	slti $t5, $t2, 9
-	beq  $t5, $0, printBoardInnerLoop
-	
-	li $v0, 11
-	syscall
-	
-printBoardInnerLoop:	
-	blt $t3, $t1, printBoardChar
-	j printBoardInnerLoopEnd
-	
+                
+printBoardRowLoop:
+        blt $t2, $t0, printBoardColumnLoopStart # If row index is less than the amount of rows, loop column
+        j printBoardExit                        # Else, exit the loop
+        
+printBoardColumnLoopStart:
+        li $t3, 0                          # Set Col index to 0
+        
+        addi $a0, $t2, 1                   # Set the row counter to index + 1
+        li $v0, 1                          # Syscall for print integer
+        syscall                            # Print row counter
+        
+        li $a0, ' '                        # Load a space into a0
+        li $v0, 11                         # Syscall for printing a character
+        syscall                            # Print the space
+        
+        slti $t4, $t2, 9                   # If row index is not less than 9
+        beq  $t4, $0, printBoardColumnLoop # Skip the second space (alignment)
+        
+        li $v0, 11                         # Syscall for printing a character
+        syscall                            # Print another space
+        
+printBoardColumnLoop:        
+        blt $t3, $t1, printBoardChar # If column index is less than total columns, print the row
+        j printBoardColumnLoopEnd    # Else end the column loop
+        
 printBoardChar:
-	mul $t5, $t2, $t1
-	add $t5, $t5, $t3
-	add $t5, $a1, $t5
+        mul $t4, $t2, $t1            # Multiply the row we're on by total columns
+        add $t4, $t4, $t3            # Add column index to $t4 to get current element index
+        add $t4, $a1, $t4            # Set $t4 to current cell address in array
 
-	lb $a0, ($t5)
-	li $v0, 11
-	syscall
-	
-	li $a0, ' '
-	li $v0, 11
-	syscall
-	
-	addi $t3, $t3, 1
-	
-	j printBoardInnerLoop
-	
-printBoardInnerLoopEnd:
-	addi $sp, $sp, -4
-	sw $a0, 0($sp)
-	
-	li $a0, '\n'
-	li $v0, 11
-	syscall
-	
-	addi $t2, $t2, 1
-	
-	lw $a0, 0($sp)
-	addi $sp, $sp, 4
-	
-	j printBoardOuter
-	
+        lb $a0, ($t4)                # Load the current array element into $a0
+        li $v0, 11                   # Syscall for printing a char
+        syscall                      # Print the current element
+        
+        li $a0, ' '                  # Load a space into $a0
+        li $v0, 11                   # Syscall for printing a character
+        syscall                      # Print a space
+        
+        addi $t3, $t3, 1             # Increment the column index
+        
+        j printBoardColumnLoop       # Move to next cell
+        
+printBoardColumnLoopEnd:        
+        li $a0, '\n'                 # Load a new line into $a0
+        li $v0, 11                   # Syscall for printing a character
+        syscall                      # Print a new line
+        
+        addi $t2, $t2, 1             # Increment the row index
+        
+        j printBoardRowLoop          # Move on to next row
+        
 printBoardExit:
-
-	lw $a1, 24($sp)
-	lw $t5, 20($sp)
-	lw $t3, 16($sp)
-	lw $t2, 12($sp)
-	lw $t1, 8($sp)
-	lw $t0, 4($sp)
-	lw $ra, 0($sp)
-	addi $sp, $sp, 28
-	
-	jr $ra
-	
+        lw $a1, 24($sp)              # Load a1 register from stack
+        lw $t4, 20($sp)              # Load t4 register from stack
+        lw $t3, 16($sp)              # Load t3 register from stack
+        lw $t2, 12($sp)              # Load t2 register from stack
+        lw $t1, 8($sp)               # Load t1 register from stack
+        lw $t0, 4($sp)               # Load t0 register from stack
+        lw $ra, 0($sp)               # Load return address from stack
+        addi $sp, $sp, 28            # Restore the stack
+        
+        jr $ra                       # Jump to return address
+        
 Exit:
-	li $v0, 10
-	syscall
+        li $v0, 10                   # Syscall for program term
+        syscall                      # Exit program
+
 
