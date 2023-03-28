@@ -1,5 +1,5 @@
 # File: board.asm
-# Author: Nicholas Donovan [ADD YOUR NAMES HERE IF YOU WORK ON IT]
+# Authors: Nicholas Donovan [ADD YOUR NAMES HERE IF YOU WORK ON IT]
 # Class: CS 2340.004
 # Date: Mar. 26, 2023
 # Purpose: Responsible for creating, updating, and displaying the game board. Will contain 
