@@ -16,21 +16,10 @@
         boardArray:        .space 165
         boardArraySize:    .half 165
         boardHeaderString: .asciiz "   A B C D E F G H I J K L M N O \n   -----------------------------\n"
-        .globl main
+        .globl printBoard
+        .globl initializeBoard
         
 .text
-main:
-        addi $sp, $sp, -4        # Make room in stack
-        sw $ra, 0($sp)           # Store return address in stack
-
-        jal initializeBoard      # Jump and link initializeBoard subroutine
-        jal printBoard           # Jump and link printBoard subroutine
-        
-        lw $ra, 0($sp)           # Load return address from stack
-        addi $sp, $sp, 4         # Restore the stack
-
-        j Exit                   # Jump to Exit subroutine
-
 initializeBoard:
         addi $sp, $sp, -32       # Make room in stack
         sw $ra, 0($sp)           # Store return address in stack
@@ -188,9 +177,5 @@ printBoardExit:
         addi $sp, $sp, 28            # Restore the stack
         
         jr $ra                       # Jump to return address
-        
-Exit:
-        li $v0, 10                   # Syscall for program term
-        syscall                      # Exit program
 
 
