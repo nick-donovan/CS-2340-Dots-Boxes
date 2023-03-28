@@ -3,8 +3,8 @@
 # Class: CS 2340.004
 # Date: Mar. 26, 2023
 # Purpose: Responsible for creating, updating, and displaying the game board. Will contain 
-  functions for initializing the board, updating the state of the board after a move is made, 
-  and printing the board to the console.
+#  functions for initializing the board, updating the state of the board after a move is made, 
+#  and printing the board to the console.
 
 # I'll add comments to this later -ND
 
@@ -42,9 +42,9 @@ initializeBoard:
 	sw $a1, 28($sp)
 
 	la $a1, boardArray
-	la $t0, boardRowSize		# Load row size address == 11
+	la $t0, boardRowSize	# Load row size address == 11
 	lb $t0, ($t0)				# Set row size to $t0
-	la $t1, boardColumnSize     # Load row size address == 15
+	la $t1, boardColumnSize  			# Load row size address == 15
 	lb $t1, ($t1)				# set col size to $t1
 	li $t2, 0      				# Row counter
 	li $t3, 0					# Column counter
@@ -113,13 +113,13 @@ printBoard:
 	sw $a1, 24($sp)
 	
 	la $a1, boardArray			# Load address of boardArray
-	la $t0, boardRowSize		# Load row size address
+	la $t0, boardRowSize			# Load row size address
 	lb $t0, ($t0)				# Set row size to $t0
-	la $t1, boardColumnSize     # Load row size address
+	la $t1, boardColumnSize     		# Load row size address
 	lb $t1, ($t1)				# set col size to $t1
 	li $t2, 0      				# Row counter
-	li $t3, 0					# Column counter
-	li $t4, 1					# Row num counter
+	li $t3, 0				# Column counter
+	li $t4, 1				# Row num counter
 
 	la $a0, boardHeaderString
 	li $v0, 4
@@ -127,7 +127,7 @@ printBoard:
 
 		
 printBoardOuter:
-	blt $t2, $t0, printBoardInnerLoopStart 
+	blt $t2, $t0, printBoardInnerLoopStart #
 	j printBoardExit
 	
 printBoardInnerLoopStart:
