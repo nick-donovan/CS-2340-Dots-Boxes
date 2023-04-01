@@ -14,6 +14,13 @@ main:
         jal initializeBoard
         jal printBoard
         
+        li $a0, 3       # X index to change
+        li $a1, 4       # Y Index to change
+        li $a2, 0       # 0 is player, 1 is Computer
+        jal updateEdge  # update edge
+        
+        jal printBoard
+        
         lw $ra, 0($sp)
         addi $sp, $sp, 4
         

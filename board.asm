@@ -182,7 +182,7 @@ updateEdge:
                 li $t5, 'C'
         
         updateEdgeContinue:
-        	sb $t5, ($t4)
+                sb $t5, ($t4)
         
         lw $ra, 0($sp)
         addi $sp, $sp, 4
