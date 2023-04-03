@@ -16,6 +16,8 @@
         boardArray:        .space 165
         boardArraySize:    .half 165
         boardHeaderString: .asciiz "   A B C D E F G H I J K L M N O \n   -----------------------------\n"
+        playerEdgeSymbol: .byte 'P'
+        oppEdgeSymbol: .byte 'C'
         .globl printBoard
         .globl initializeBoard
         .globl updateEdge
@@ -23,6 +25,13 @@
 .text
 main:
 	jal initializeBoard
+	jal printBoard
+
+	li $a0, 3
+	li $a1, 2
+	li $a2, 12
+	jal updateEdge
+	
 	jal printBoard
 
         li $v0, 10
@@ -47,7 +56,7 @@ main:
 #   None
 # Outputs:
 #   None - Initialized board is saved in memory
-# Registers modified: None
+# Registers modified: $sp, $ra
 initializeBoard:
         addi $sp, $sp, -4        # Make room in stack
         sw $ra, 0($sp)           # Save the return address
@@ -126,7 +135,7 @@ initializeBoard:
 #   None
 # Outputs:
 #   None
-# Registers modified: None
+# Registers modified: $sp, $ra, $a0
 printBoard:
         addi $sp, $sp, -4         # Make room in stack
         sw $ra, 0($sp)            # Save the return address
@@ -194,35 +203,52 @@ printBoard:
 
                 jr $ra                    # Return
   
-        
+# Description: Updates a board edge and sets a marker for who claimed it
+#
+# Pseudo representation:
+#    private void updateEdge(int $a0, int $a1, $int a2):
+#        if (a2 == 0)
+#            boardArray[a1][a0] = playerEdgeSymbol
+#        else
+#            boardArray[a1][a0] = oppEdgeSymbol
+#    end updateEdge()     
+#
+# Inputs: 
+#   $a0 - Col index of the edge
+#   $a1 - Row index of the edge
+#   $a2 - Integer for which player claims the edge; 0 for player, 1 for opponent
+# Outputs:
+#   None
+# Registers modified: $sp, $ra
 updateEdge:
-        addi $sp, $sp, -4
-        sw $ra, 0($sp)
+        addi $sp, $sp, -4              # Make room in stack
+        sw $ra, 0($sp)                 # Save the return address
         
-        la $t0, boardArray          # Load address of the array into $t0
-        la $t1, boardRowSize        # Load rowSize address into $t1
-        lb $t1, ($t1)               # Set $t1 to rowSize integer
-        la $t2, boardColumnSize     # Load colSize address into $t2
-        lb $t2, ($t2)               # Set $t2 to colSize integer
+        la $t0, boardArray             # Load address of the array into $t0
+        la $t1, boardRowSize           # Load rowSize address into $t1
+        lb $t1, ($t1)                  # Set $t1 to rowSize integer
+        la $t2, boardColumnSize        # Load colSize address into $t2
+        lb $t2, ($t2)                  # Set $t2 to colSize integer
         
-        mul $t4, $a1, $t2
-        add $t4, $t4, $a0
-        add $t4, $t4, $t0
+        mul $t4, $a1, $t2              # Get current row
+        add $t4, $t4, $a0              # Get current element index in row
+        add $t4, $t4, $t0              # Add index to array address to get current address
         
-        bnez $a2, opponentEdge
+        bnez $a2, opponentEdge         # if (a2 != 0) it's the opponents edge
         
-        li $t5, 'P'
-        j updateEdgeContinue
+        lb $t5, playerEdgeSymbol       # Load players edge symbol
+        j setEdge                      # Set players edge
         
         opponentEdge:
-                li $t5, 'C'
+                lb $t5, oppEdgeSymbol  # Load opponents edge symbol
+
+        setEdge:
+                sb $t5, ($t4)          # Store symbol as current element
         
-        updateEdgeContinue:
-                sb $t5, ($t4)
+        lw $ra, 0($sp)                 # Load return address
+        addi $sp, $sp, 4               # Restore the stack
         
-        lw $ra, 0($sp)
-        addi $sp, $sp, 4
-        jr $ra
+        jr $ra                         # Return
         
         
 printString:
