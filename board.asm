@@ -49,8 +49,8 @@ main:
 #   None - Initialized board is saved in memory
 # Registers modified: None
 initializeBoard:
-        addi $sp, $sp, -4
-        sw $ra, 0($sp)
+        addi $sp, $sp, -4        # Make room in stack
+        sw $ra, 0($sp)           # Save the return address
 
         la $t0, boardArray       # Load address of the array into $t0
         la $t1, boardRowSize     # Load rowSize address into $t1
@@ -109,79 +109,97 @@ initializeBoard:
 
                 jr $ra                               # Return
         
+# Description: Prints the game board in it's current state.
+#
+# Pseudo representation:
+#     public void printBoard():
+#         print(boardHeaderString)
+#         for(int row = 0; row < boardRowSize; ++row):
+#             for (int col = 0; col < boardColumnSize; ++col):
+#                  print(row + 1)
+#                  print(' ')
+#                  if (row + 1 < 9): print(' ')
+#                  print(boardArray[row][col] + " ")
+#              end for
+#              print('\n')
+#          end for
+#      end printBoard()
+#
+# Inputs: 
+#   None
+# Outputs:
+#   None
+# Registers modified: None
 printBoard:
-        addi $sp, $sp, -4           # Make room in stack
-        sw $ra, 0($sp)              # Store return address in stack
-                
-        la $t0, boardArray          # Load address of the array into $t0
-        la $t1, boardRowSize        # Load rowSize address into $t1
-        lb $t1, ($t1)               # Set $t1 to rowSize integer
-        la $t2, boardColumnSize     # Load colSize address into $t2
-        lb $t2, ($t2)               # Set $t2 to colSize integer
-        li $t3, 0                   # Initialize row index to 0
-        li $t4, 0                   # Initialize col index to 0 (not needed here but helps know which reg it's in)
+        addi $sp, $sp, -4         # Make room in stack
+        sw $ra, 0($sp)            # Save the return address
 
-        la $a0, boardHeaderString   # Load address for boardHeaderString
-        li $v0, 4                   # Syscall for print string
-        syscall                     # Print boardHeaderString
+        la $t0, boardArray        # Load address of the array into $t0
+        la $t1, boardRowSize      # Load rowSize address into $t1
+        lb $t1, ($t1)             # Set $t1 to rowSize integer
+        la $t2, boardColumnSize   # Load colSize address into $t2
+        lb $t2, ($t2)             # Set $t2 to colSize integer 
+        li $t3, 0                 # Initialize row index to 0 (int row = 0)
 
-                
-        printBoardRowLoop:
-                blt $t3, $t1, printBoardColumnLoopStart # If row index is less than the amount of rows, loop column
-                j printBoardExit                        # Else, exit the loop
-                
-                printBoardColumnLoopStart:
-                        li $t4, 0                          # Set Col index to 0
-                        
-                        addi $a0, $t3, 1                   # Set the row counter to index + 1
-                        li $v0, 1                          # Syscall for print integer
-                        syscall                            # Print row counter
-                        
-                        li $a0, ' '                        # Load a space into a0
-                        li $v0, 11                         # Syscall for printing a character
-                        syscall                            # Print the space
-                        
-                        slti $t5, $t3, 9                   # If row index is not less than 9
-                        beq  $t5, $0, printBoardColumnLoop # Skip the second space (alignment)
-                        
-                        li $v0, 11                         # Syscall for printing a character
-                        syscall                            # Print another space
-                        
-                printBoardColumnLoop:        
-                        blt $t4, $t2, printBoardChar # If column index is less than total columns, print the row
-                        j printBoardColumnLoopEnd    # Else end the column loop
-                        
-                printBoardChar:
-                        mul $t5, $t3, $t2            # Multiply the row we're on by total columns
-                        add $t5, $t5, $t4            # Add column index to $t5 to get current element index
-                        add $t5, $t0, $t5            # Set $t5 to current cell address in array
+        la $a0, boardHeaderString
+        jal printString
 
-                        lb $a0, ($t5)                # Load the current array element into $a0
-                        li $v0, 11                   # Syscall for printing a char
-                        syscall                      # Print the current element
+        # Loop through each row of the game board
+        pBRowLoop:
+                slt $t5, $t3, $t1      # Is row < boardRowSize
+                beq $t5, $zero, pBExit # If not, exit
+                
+                li $t4, 0              # Set col index to 0 (int col = 0)
+                
+                # Print the number label for each row
+                pBPrintRowNum:
+                        move $a0, $t3                # Move row index to a0
+                        addiu $a0, $a0, 1            # Add 1
+                        jal printInt                 # Print row index
                         
-                        li $a0, ' '                  # Load a space into $a0
-                        li $v0, 11                   # Syscall for printing a character
-                        syscall                      # Print a space
+                        lb $a0, spaceChar            # Load space char
+                        jal printChar                # Print a space
                         
-                        addi $t4, $t4, 1             # Increment the column index
+                        slti $t5, $t3, 9             # Is row in the one digit num range
+                        beq $t5, $zero, pBPrintCell  # If not skip to pBPrintCell
                         
-                        j printBoardColumnLoop       # Move to next cell
+                        jal printChar                # Else print another space
+
+                # Loop through each column of the game board
+                pBColLoop:
+                        slt $t5, $t4, $t2            # Is col < boardColumnSize
+                        beq $t5, $zero, pBColLoopEnd # If not, move to next row  
+                                
+                        # Print the current cell
+                        pBPrintCell:
+                                mul $t5, $t3, $t2            # Multiply the row we're on by total columns
+                                add $t5, $t5, $t4            # Add column index to $t5 to get current element index
+                                add $t5, $t5, $t0            # Set $t5 to current cell address in array
+
+                                lb $a0, ($t5)                # Load the current array element into $a0
+                                jal printChar                # Print the current element
                         
-                printBoardColumnLoopEnd:        
-                        li $a0, '\n'                 # Load a new line into $a0
-                        li $v0, 11                   # Syscall for printing a character
-                        syscall                      # Print a new line
+                                lb $a0, spaceChar            # Load a space into $a0
+                                jal printChar                # Print a space
+                                
+                                addi $t4, $t4, 1             # Increment col index
+                                
+                                j pBColLoop                  # Move to next element
+                                
+                pBColLoopEnd:
+                        addi $t3, $t3, 1  # Increment row index
                         
-                        addi $t3, $t3, 1             # Increment the row index
+                        la $a0, '\n'      # Load new line char
+                        jal printChar     # Print new line
                         
-                        j printBoardRowLoop          # Move on to next row
-                            
-printBoardExit:
-        lw $ra, 0($sp)               # Load return address from stack
-        addi $sp, $sp, 4             # Restore the stack
-        
-        jr $ra                       # Jump to return address
+                        j pBRowLoop       # Move to next row
+                        
+        pBExit:
+                lw $ra, 0($sp)            # Load return address from stack
+                addi $sp, $sp, 4          # Free up stack space
+
+                jr $ra                    # Return
+  
         
 updateEdge:
         addi $sp, $sp, -4
@@ -193,7 +211,7 @@ updateEdge:
         la $t2, boardColumnSize     # Load colSize address into $t2
         lb $t2, ($t2)               # Set $t2 to colSize integer
         
-        
+       
         mul $t4, $a1, $t2
         add $t4, $t4, $a0
         add $t4, $t4, $t0
@@ -215,5 +233,19 @@ updateEdge:
         jr $ra
         
         
-
+printString:
+        li $v0, 4
+        syscall
+        jr $ra
+        
+printInt:
+        li $v0, 1
+        syscall
+        jr $ra
+        
+printChar:
+        li $v0, 11
+        syscall
+        jr $ra
+                
 
