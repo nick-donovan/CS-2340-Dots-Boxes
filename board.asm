@@ -82,20 +82,17 @@ initializeBoard:
 
                         j iBInsertChar               # Insert into the game board array
  
-                        
+                        # Load a space if either row or col are odd
                         loadSpace:
                                 lb $t6, spaceChar    # Load the space character into $t6
 
                         # Insert the loaded symbol into the game board array
                         iBInsertChar:
-                                mul $t5, $t3, $t2    # Calculate the index of the current position on the game board array
-                                add $t5, $t5, $t4
-                                add $t5, $t5, $t0    # Add the address of the game board to the index
+                                sb $t6, ($t0)        # Insert the loaded char into the game board array
 
-                                sb $t6, ($t5)        # Insert the loaded char into the game board array
-
+                        # Adjust indexes and positions
                         addi $t4, $t4, 1             # Increment col index
-
+                        addi $t0, $t0, 1             # Increment position to next element
                         j iBColLoop                  # Move to next element
 
                 # End of the column loop
@@ -172,19 +169,16 @@ printBoard:
                                 
                         # Print the current cell
                         pBPrintCell:
-                                mul $t5, $t3, $t2            # Multiply the row we're on by total columns
-                                add $t5, $t5, $t4            # Add column index to $t5 to get current element index
-                                add $t5, $t5, $t0            # Set $t5 to current cell address in array
-
-                                lb $a0, ($t5)                # Load the current array element into $a0
+                                lb $a0, ($t0)                # Load the current array element into $a0
                                 jal printChar                # Print the current element
                         
                                 lb $a0, spaceChar            # Load a space into $a0
                                 jal printChar                # Print a space
                                 
-                                addi $t4, $t4, 1             # Increment col index
-                                
-                                j pBColLoop                  # Move to next element
+                        # Adjust indexes and positions
+                        addi $t4, $t4, 1             # Increment col index
+                        addi $t0, $t0, 1             # Increment position to next element
+                        j pBColLoop                  # Move to next element
                                 
                 pBColLoopEnd:
                         addi $t3, $t3, 1  # Increment row index
@@ -211,11 +205,9 @@ updateEdge:
         la $t2, boardColumnSize     # Load colSize address into $t2
         lb $t2, ($t2)               # Set $t2 to colSize integer
         
-       
         mul $t4, $a1, $t2
         add $t4, $t4, $a0
         add $t4, $t4, $t0
-        
         
         bnez $a2, opponentEdge
         
