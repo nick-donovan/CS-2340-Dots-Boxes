@@ -24,16 +24,6 @@
         
 .text
 main:
-	jal initializeBoard
-	jal printBoard
-
-	li $a0, 3
-	li $a1, 2
-	li $a2, 12
-	jal updateEdge
-	
-	jal printBoard
-
         li $v0, 10
         syscall
 
