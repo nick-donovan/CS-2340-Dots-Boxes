@@ -239,21 +239,4 @@ updateEdge:
         addi $sp, $sp, 4               # Restore the stack
         
         jr $ra                         # Return
-        
-        
-printString:
-        li $v0, 4
-        syscall
-        jr $ra
-        
-printInt:
-        li $v0, 1
-        syscall
-        jr $ra
-        
-printChar:
-        li $v0, 11
-        syscall
-        jr $ra
-                
 

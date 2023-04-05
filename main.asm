@@ -5,6 +5,10 @@
 # Purpose: Responsible for tying everything together and running the game loop. Functions 
 #  for initializing the game, running the game loop, and displaying the final score and winner 
 #  at the end of the game.
+.data
+        .globl printString
+        .globl printInt
+        .globl printChar
 
 .text
 main:
@@ -29,3 +33,41 @@ main:
 exit:
         li $v0, 10                   # Syscall for program term
         syscall                      # Exit program
+
+        
+# Description: Prints a string to stdout.
+#
+# Inputs: 
+#   $a0 - the string to print
+# Outputs:
+#   None
+# Registers modified: None
+printString:
+        li $v0, 4
+        syscall
+        jr $ra
+        
+# Description: Prints an int to stdout.
+#
+# Inputs: 
+#   $a0 - the int to print
+# Outputs:
+#   None
+# Registers modified: None
+printInt:
+        li $v0, 1
+        syscall
+        jr $ra
+
+# Description: Prints a char to stdout.
+#
+# Inputs: 
+#   $a0 - the char to print
+# Outputs:
+#   None
+# Registers modified: None 
+printChar:
+        li $v0, 11
+        syscall
+        jr $ra
+                
