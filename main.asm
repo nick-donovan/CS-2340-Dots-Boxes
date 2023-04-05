@@ -9,6 +9,7 @@
         .globl printString
         .globl printInt
         .globl printChar
+        .globl printBreak
 
 .text
 main:
@@ -18,8 +19,10 @@ main:
         jal initializeBoard
         jal printBoard
         
-        li $a0, 3       # X index to change
-        li $a1, 4       # Y Index to change
+        jal getUserInput
+        
+        move $a0, $v0   # X index to change
+        move $a1, $v1   # Y Index to change
         li $a2, 0       # 0 is player, 1 is Computer
         jal updateEdge  # update edge
         
@@ -70,4 +73,16 @@ printChar:
         li $v0, 11
         syscall
         jr $ra
-                
+
+# Description: Prints a new line to stdout.
+#
+# Inputs: 
+#   None
+# Outputs:
+#   None
+# Registers modified: None    
+printBreak:
+        li $a0, '\n'
+        li $v0, 11
+        syscall
+        jr $ra
