@@ -137,6 +137,8 @@ printBoard:
         lb $t2, ($t2)             # Set $t2 to colSize integer 
         li $t3, 0                 # Initialize row index to 0 (int row = 0)
 
+        jal printBreak
+
         la $a0, boardHeaderString
         jal printString
 
