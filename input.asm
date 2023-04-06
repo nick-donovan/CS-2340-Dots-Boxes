@@ -7,68 +7,68 @@
 #  input is valid, and displaying error messages if the input is invalid.
 
 .data
-        userSelectedEdge: .space 3
-        userSelectedEdgeSize: .byte 4
-        edgeStringMaxLen: .byte 3
-        userPromptString: .asciiz "Enter an edge to claim (ex: A2): "
-        invalidInputWarning: .asciiz "Please enter a letter (A-O) and a number (0-11)."
-        insfCharactersWarning: .asciiz "PLACEHOLDER WARNING - NOT ENOUGH CHARS IN EDGE STRING"
-        .globl getUserInput
-        .globl convertEdgeString
+        input_user_selected_edge: .space 3
+        input_user_selected_edge_size: .byte 4
+        input_edge_string_max_len: .byte 3
+        input_user_prompt_string: .asciiz "Enter an edge to claim (ex: A2): "
+        input_invalid_input_warning: .asciiz "Please enter a letter (A-O) and a number (0-11)."
+        input_insf_characters_warning: .asciiz "PLACEHOLDER WARNING - NOT ENOUGH CHARS IN EDGE STRING"
+        .globl input_get_user_input
+        .globl input_convert_edge_string
 
 .text
 main:
 
-        jal getUserInput
+        jal input_get_user_input
         j exit
 
-# Description: Prints the userPromptString and saves a selected edge into 
-#              userSelectedEdge before having it converted to two indicies.
+# Description: Prints the input_user_prompt_string and saves a selected edge into 
+#              input_user_selected_edge before having it converted to two indicies.
 #
 # Pseudo representation:
-#     public (int, int) getUserInput():
-#         print(userPromptString)
+#     public (int, int) input_get_user_input():
+#         print(input_user_prompt_string)
 #         a0 = input.next
-#         (col, row) = convertEdgeString(a0)
+#         (col, row) = input_convert_edge_string(a0)
 #         return (col, row)
-#     end getUserInput()
+#     end input_get_user_input()
 # Inputs: 
 #   None
 # Outputs:
 #   $v0 - the col index of the selected edge
 #   $v1 - the row index of the selected edge
 # Registers modified: $sp, $ra, $a0
-getUserInput:
+input_get_user_input:
         addi $sp, $sp -4
         sw $ra, 0($sp)
         
-        la $a0, userPromptString
-        jal printString
+        la $a0, input_user_prompt_string
+        jal print_string
         
-        la $a0, userSelectedEdge
-        lb $a1, userSelectedEdgeSize
+        la $a0, input_user_selected_edge
+        lb $a1, input_user_selected_edge_size
         li $v0, 8
         syscall
         
-        jal convertEdgeString
+        jal input_convert_edge_string
         
-        # todo: jal validateUserInput
+        # todo: jal input_validate_user_input
         
         lw $ra, 0($sp)
         addi $sp, $sp, 4
         
         jr $ra
         
-convertEdgeString:
+input_convert_edge_string:
         addi $sp, $sp -4
         sw $ra, 0($sp)
       
-        jal getLength
+        jal input_get_length
 
         # todo: add error handling for len < 2
         
         move $a1, $v0
-        jal splitInput
+        jal input_split_input
 
         lw $ra, 0($sp)
         addi $sp, $sp, 4
@@ -78,43 +78,42 @@ convertEdgeString:
 # Description: Returns the length of a string
 #
 # Pseudo representation:
-#     private int getLength(String a0):
+#     private int input_get_length(String a0):
 #         int len = 0
 #         for (char in a0):
-#             if (len >= edgeStringMaxLen || char == 0x00 || char == 0x0A):
+#             if (len >= input_edge_string_max_len || char == 0x00 || char == 0x0A):
 #                 break
 #             ++len
 #         end for
 #         return len
-#     end getLength()
+#     end input_get_length()
 #
 # Inputs: 
 #   $a0 - string to get length of
 # Outputs:
 #   $v0 - length of string as integer
 # Registers modified: $sp, $ra
-getLength:
+input_get_length:
         addi $sp, $sp, -4
         sw $ra, 0($sp)
         
         move $t0, $a0 # First index of input string
         li $t1, 0   # Input string length
-        lb $t2, edgeStringMaxLen
+        lb $t2, input_edge_string_max_len
 
-        getLengthLoop:
+        i_gl_loop:
                 lb $t3, ($t0)
-                bge $t1, $t2, getLengthEnd # If length == 3, exit
-                beqz $t3, getLengthEnd # If null terminated
+                bge $t1, $t2, i_gl_end # If length == 3, exit
+                beqz $t3, i_gl_end # If null terminated
                 seq $t3, $t3, 0x0A
-                bnez $t3, getLengthEnd # If line feed terminated
-                
+                bnez $t3, i_gl_end # If line feed terminated
 
                 add $t0, $t0, 1
                 addi $t1, $t1, 1
                 
-                j getLengthLoop
+                j i_gl_loop
 
-        getLengthEnd:
+        i_gl_end:
                 move $v0, $t1
                 
                 lw $ra, 0($sp)
@@ -127,7 +126,7 @@ getLength:
 # Description: Splits the edge string into two indices for the array.
 #
 # Pseudo representation:
-#     private (int, int) splitInput(String $a0, int $a1):
+#     private (int, int) input_split_input(String $a0, int $a1):
 #         // EX: $a0 = "A11"
 #         int col = input[0] - 0x41 # 'A' becomes 0
 #         int row = input[1] - 0x30 # '1' becomes 1
@@ -136,7 +135,7 @@ getLength:
 #         row = (row * 10) + (input[2] - 0x30) # Row becomes '11'
 #         --row # Row becomes '10'
 #         return (col, row)
-#     end splitInput()
+#     end input_split_input()
 #
 # Inputs: 
 #   $a0 - edge string containing the selected edge to split
@@ -145,7 +144,7 @@ getLength:
 #   $v0 - the col index of the selected edge
 #   $v1 - the row index of the selected edge
 # Registers modified: $sp, $ra
-splitInput:
+input_split_input:
         addi $sp, $sp, -4
         sw $ra, 0($sp)
         
@@ -156,16 +155,16 @@ splitInput:
         subu $t1, $t1, 0x30
         
         seq $t2, $a1, 2
-        bnez $t2, splitInputExit
+        bnez $t2, i_si_exit
         
-        splitInputTwoNums: # a0 will not be greater than 3 chars
+        i_si_two_nums: # a0 will not be greater than 3 chars
                 lbu $t3, 2($a0)
                 subu $t3, $t3, 0x30
                 li $t4, 10
                 mulu $t1, $t1, $t4
                 addu $t1, $t1, $t3
         
-        splitInputExit:
+        i_si_exit:
                 addi $t1, $t1, -1
         
                 move $v0, $t0

@@ -6,27 +6,27 @@
 #  for initializing the game, running the game loop, and displaying the final score and winner 
 #  at the end of the game.
 .data
-        .globl printString
-        .globl printInt
-        .globl printChar
-        .globl printBreak
+        .globl print_string
+        .globl print_int
+        .globl print_char
+        .globl print_break
 
 .text
 main:
         addi $sp, $sp, -4
         sw $ra, 0($sp)
         
-        jal initializeBoard
-        jal printBoard
+        jal board_initialize_board
+        jal board_print_board
         
-        jal getUserInput
+        jal input_get_user_input
         
         move $a0, $v0   # X index to change
         move $a1, $v1   # Y Index to change
         li $a2, 0       # 0 is player, 1 is Computer
-        jal updateEdge  # update edge
+        jal board_update_edge  # update edge
         
-        jal printBoard
+        jal board_print_board
         
         lw $ra, 0($sp)
         addi $sp, $sp, 4
@@ -45,7 +45,7 @@ exit:
 # Outputs:
 #   None
 # Registers modified: None
-printString:
+print_string:
         li $v0, 4
         syscall
         jr $ra
@@ -57,7 +57,7 @@ printString:
 # Outputs:
 #   None
 # Registers modified: None
-printInt:
+print_int:
         li $v0, 1
         syscall
         jr $ra
@@ -69,7 +69,7 @@ printInt:
 # Outputs:
 #   None
 # Registers modified: None 
-printChar:
+print_char:
         li $v0, 11
         syscall
         jr $ra
@@ -81,7 +81,7 @@ printChar:
 # Outputs:
 #   None
 # Registers modified: None    
-printBreak:
+print_break:
         li $a0, '\n'
         li $v0, 11
         syscall
