@@ -5,6 +5,7 @@
 .text
 labelOne:
         li $t0, 999
+        j AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
         
 labelTwo:
         la $a0, labelOne
