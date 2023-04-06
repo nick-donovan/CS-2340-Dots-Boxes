@@ -9,31 +9,31 @@
 # I'll add comments to this later -ND
 
 .data
-        b_row_size:      .byte 11
-        b_column_size:   .byte 15
-        b_symbol_char:   .byte '+'
-        b_space_char:      .byte ' '
-        b_board_array:        .space 165
-        b_board_array_size:    .half 165
-        b_header_string: .asciiz "   A B C D E F G H I J K L M N O \n   -----------------------------\n"
-        b_player_symbol: .byte 'P'
-        b_opp_symbol: .byte 'C'
+        board_row_size:      .byte 11
+        board_column_size:   .byte 15
+        board_symbol_char:   .byte '+'
+        board_space_char:      .byte ' '
+        board_array:        .space 165
+        board_array_size:    .half 165
+        board_header_string: .asciiz "   A B C D E F G H I J K L M N O \n   -----------------------------\n"
+        board_player_symbol: .byte 'P'
+        board_opp_symbol: .byte 'C'
         .globl board_print_board
         .globl board_initialize_board
         .globl board_update_edge
         
 .text
-# Description: Initializes the game board with the b_symbol_char as dots 
+# Description: Initializes the game board with the board_symbol_char as dots 
 #              and spaces for empty areas.
 #
 # Pseudo representation:
 #     public void board_initialize_board():
-#         for(int row = 0; row < b_row_size; ++row):
-#             for (int col = 0; col < b_column_size; ++col):
+#         for(int row = 0; row < board_row_size; ++row):
+#             for (int col = 0; col < board_column_size; ++col):
 #                 if (row.isEven() && col.isEven()):
-#                     b_board_array[row][col] = b_symbol_char
+#                     board_array[row][col] = board_symbol_char
 #                 else
-#                     b_board_array[row][col] = ' '
+#                     board_array[row][col] = ' '
 #             end for
 #         end for
 #     end board_initialize_board
@@ -47,23 +47,23 @@ board_initialize_board:
         addi $sp, $sp, -4        # Make room in stack
         sw $ra, 0($sp)           # Save the return address
 
-        la $t0, b_board_array       # Load address of the array into $t0
-        la $t1, b_row_size     # Load rowSize address into $t1
+        la $t0, board_array       # Load address of the array into $t0
+        la $t1, board_row_size     # Load rowSize address into $t1
         lb $t1, ($t1)            # Set $t1 to rowSize integer
-        la $t2, b_column_size  # Load colSize address into $t2
+        la $t2, board_column_size  # Load colSize address into $t2
         lb $t2, ($t2)            # Set $t2 to colSize integer 
         li $t3, 0                # Initialize row index to 0 (int row = 0)
         
         # Loop through each row of the game board
         b_ib_row_loop:
-                slt $t5, $t3, $t1      # Is row < b_row_size
+                slt $t5, $t3, $t1      # Is row < board_row_size
                 beq $t5, $zero, b_ib_exit # If not, exit
                 
                 li $t4, 0              # Set col index to 0 (int col = 0)
 
                 # Loop through each column of the game board
                 b_ib_col_loop:
-                        slt $t5, $t4, $t2            # Is col < b_column_size
+                        slt $t5, $t4, $t2            # Is col < board_column_size
                         beq $t5, $zero, b_ib_col_loop_end # If not, move to next row
 
                         # Check if current position is even
@@ -73,13 +73,13 @@ board_initialize_board:
                         andi $t5, $t4, 0x01           # Use AND to check if col index is even
                         bnez $t5, b_ib_cl_load_space   # Jump to b_ib_cl_load_space if col index is odd
 
-                        lb $t6, b_symbol_char      # Load b_symbol_char into $t6
+                        lb $t6, board_symbol_char      # Load board_symbol_char into $t6
 
                         j b_ib_insert_char               # Insert into the game board array
  
                         # Load a space if either row or col are odd
                         b_ib_cl_load_space:
-                                lb $t6, b_space_char    # Load the space character into $t6
+                                lb $t6, board_space_char    # Load the space character into $t6
 
                         # Insert the loaded symbol into the game board array
                         b_ib_insert_char:
@@ -105,13 +105,13 @@ board_initialize_board:
 #
 # Pseudo representation:
 #     public void board_print_board():
-#         print(b_header_string)
-#         for(int row = 0; row < b_row_size; ++row):
-#             for (int col = 0; col < b_column_size; ++col):
+#         print(board_header_string)
+#         for(int row = 0; row < board_row_size; ++row):
+#             for (int col = 0; col < board_column_size; ++col):
 #                  print(row + 1)
 #                  print(' ')
 #                  if (row + 1 < 9): print(' ')
-#                  print(b_board_array[row][col] + " ")
+#                  print(board_array[row][col] + " ")
 #              end for
 #              print('\n')
 #          end for
@@ -126,21 +126,21 @@ board_print_board:
         addi $sp, $sp, -4         # Make room in stack
         sw $ra, 0($sp)            # Save the return address
 
-        la $t0, b_board_array        # Load address of the array into $t0
-        la $t1, b_row_size      # Load rowSize address into $t1
+        la $t0, board_array        # Load address of the array into $t0
+        la $t1, board_row_size      # Load rowSize address into $t1
         lb $t1, ($t1)             # Set $t1 to rowSize integer
-        la $t2, b_column_size   # Load colSize address into $t2
+        la $t2, board_column_size   # Load colSize address into $t2
         lb $t2, ($t2)             # Set $t2 to colSize integer 
         li $t3, 0                 # Initialize row index to 0 (int row = 0)
 
         jal print_break
 
-        la $a0, b_header_string
+        la $a0, board_header_string
         jal print_string
 
         # Loop through each row of the game board
         b_pb_row_loop:
-                slt $t5, $t3, $t1      # Is row < b_row_size
+                slt $t5, $t3, $t1      # Is row < board_row_size
                 beq $t5, $zero, b_pb_exit # If not, exit
                 
                 li $t4, 0              # Set col index to 0 (int col = 0)
@@ -151,7 +151,7 @@ board_print_board:
                         addiu $a0, $a0, 1            # Add 1
                         jal print_int                 # Print row index
                         
-                        lb $a0, b_space_char            # Load space char
+                        lb $a0, board_space_char            # Load space char
                         jal print_char                # Print a space
                         
                         slti $t5, $t3, 9             # Is row in the one digit num range
@@ -161,7 +161,7 @@ board_print_board:
 
                 # Loop through each column of the game board
                 b_pb_col_loop:
-                        slt $t5, $t4, $t2            # Is col < b_column_size
+                        slt $t5, $t4, $t2            # Is col < board_column_size
                         beq $t5, $zero, b_pb_col_loop_end # If not, move to next row  
                                 
                         # Print the current cell
@@ -169,7 +169,7 @@ board_print_board:
                                 lb $a0, ($t0)                # Load the current array element into $a0
                                 jal print_char                # Print the current element
                         
-                                lb $a0, b_space_char            # Load a space into $a0
+                                lb $a0, board_space_char            # Load a space into $a0
                                 jal print_char                # Print a space
                                 
                         # Adjust indexes and positions
@@ -196,9 +196,9 @@ board_print_board:
 # Pseudo representation:
 #    private void board_update_edge(int $a0, int $a1, $int a2):
 #        if (a2 == 0)
-#            b_board_array[a1][a0] = b_player_symbol
+#            board_array[a1][a0] = board_player_symbol
 #        else
-#            b_board_array[a1][a0] = b_opp_symbol
+#            board_array[a1][a0] = board_opp_symbol
 #    end board_update_edge()     
 #
 # Inputs: 
@@ -212,10 +212,10 @@ board_update_edge:
         addi $sp, $sp, -4              # Make room in stack
         sw $ra, 0($sp)                 # Save the return address
         
-        la $t0, b_board_array             # Load address of the array into $t0
-        la $t1, b_row_size           # Load rowSize address into $t1
+        la $t0, board_array             # Load address of the array into $t0
+        la $t1, board_row_size           # Load rowSize address into $t1
         lb $t1, ($t1)                  # Set $t1 to rowSize integer
-        la $t2, b_column_size        # Load colSize address into $t2
+        la $t2, board_column_size        # Load colSize address into $t2
         lb $t2, ($t2)                  # Set $t2 to colSize integer
         
         mul $t4, $a1, $t2              # Get current row
@@ -224,11 +224,11 @@ board_update_edge:
         
         bnez $a2, b_ue_opponent_edge         # if (a2 != 0) it's the opponents edge
         
-        lb $t5, b_player_symbol       # Load players edge symbol
+        lb $t5, board_player_symbol       # Load players edge symbol
         j b_ue_set_edge                      # Set players edge
         
         b_ue_opponent_edge:
-                lb $t5, b_opp_symbol  # Load opponents edge symbol
+                lb $t5, board_opp_symbol  # Load opponents edge symbol
 
         b_ue_set_edge:
                 sb $t5, ($t4)          # Store symbol as current element
