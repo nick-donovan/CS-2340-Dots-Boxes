@@ -59,6 +59,21 @@ input_get_user_input:
         
         jr $ra
         
+# Description: Converts an inputted edge string (Ex: "A2") into indicies (Ex: (0, 1)
+#
+# Pseudo representation:
+#     public (int col, int row) input_convert_edge_string(String a0):
+#         int v0 = input_get_length(a0)
+#         int a1 = v0
+#         (col, row) = input_split_input(a0, a1)
+#         return (col, row)
+#     end input_convert_edge_string()
+#
+# Inputs: 
+#   $a0 - string to get length of
+# Outputs:
+#   $v0 - length of string as integer
+# Registers modified: $sp, $ra
 input_convert_edge_string:
         addi $sp, $sp -4
         sw $ra, 0($sp)
@@ -69,6 +84,9 @@ input_convert_edge_string:
         
         move $a1, $v0
         jal input_split_input
+
+        # $v0 - the col index of the selected edge
+        # $v1 - the row index of the selected edge
 
         lw $ra, 0($sp)
         addi $sp, $sp, 4
@@ -88,7 +106,7 @@ input_convert_edge_string:
 #         return len
 #     end input_get_length()
 #
-# Inputs: 
+# Inputs:
 #   $a0 - string to get length of
 # Outputs:
 #   $v0 - length of string as integer
@@ -126,7 +144,7 @@ input_get_length:
 # Description: Splits the edge string into two indices for the array.
 #
 # Pseudo representation:
-#     private (int, int) input_split_input(String $a0, int $a1):
+#     private (int col, int row) input_split_input(String $a0, int $a1):
 #         // EX: $a0 = "A11"
 #         int col = input[0] - 0x41 # 'A' becomes 0
 #         int row = input[1] - 0x30 # '1' becomes 1
