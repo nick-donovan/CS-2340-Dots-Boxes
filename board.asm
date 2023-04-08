@@ -9,13 +9,12 @@
 # I'll add comments to this later -ND
 
 .data
-        board_row_size:      .byte 11
-        board_column_size:   .byte 15
+        board_row_size:      .byte 13
+        board_column_size:   .byte 17
         board_symbol_char:   .byte '+'
         board_space_char:      .byte ' '
-        board_array:        .space 165
-        board_array_size:    .half 165
-        board_header_string: .asciiz "   A B C D E F G H I J K L M N O \n   -----------------------------\n"
+        board_array:        .space 221
+        board_header_string: .asciiz "   A B C D E F G H I J K L M N O P Q \n   ---------------------------------\n"
         board_player_symbol: .byte 'P'
         board_opp_symbol: .byte 'C'
         .globl board_print_board
