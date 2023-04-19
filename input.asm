@@ -18,7 +18,7 @@
         .globl input_convert_edge_string
 
 .text
-main:
+input_main_test: # Remove before submission
         jal board_initialize_board
         li $a0, 0
         li $a1, 1
@@ -39,9 +39,9 @@ main:
 #              input_user_selected_edge before having it converted to two indices.
 #
 # Pseudo representation:
-#     public (int, int) input_get_user_input():
+#     public input_get_user_input(): (int col, int row):
 #         print(input_user_prompt_string)
-#         a0 = input.next
+#         a0 = input()
 #         (col, row) = input_convert_edge_string(a0)
 #         return (col, row)
 #     end input_get_user_input()
@@ -50,7 +50,7 @@ main:
 # Outputs:
 #   $v0 - the col index of the selected edge
 #   $v1 - the row index of the selected edge
-# Registers modified: $sp, $ra, $a0
+# Registers modified: $sp, $ra, $s0 (restored), $s1 (restored)
 input_get_user_input:
         addi $sp, $sp, -12   # Make room in stack
         sw $s0, 8($sp)       # Save s0
@@ -83,12 +83,12 @@ input_get_user_input:
                 move $v0, $s0                      # Move column index to v0
                 move $v1, $s1                      # Move row index to v1
 
-        lw $ra, 0($sp)       # Load return address from stack
-        lw $s1, 4($sp)       # Restore s1
-        lw $s2, 8($sp)       # Restore s2
-        addi $sp, $sp, 12    # Restore the stack
+        lw $ra, 0($sp)                             # Load return address from stack
+        lw $s1, 4($sp)                             # Restore s1
+        lw $s2, 8($sp)                             # Restore s2
+        addi $sp, $sp, 12                          # Restore the stack
 
-        jr $ra               # Return
+        jr $ra                                     # Return
 
 
 # Description: Converts an inputted edge string (Ex: "A2") into indices (Ex: (0, 1))
@@ -169,42 +169,39 @@ input_convert_edge_string:
 #   $a0 - string to get length of
 # Outputs:
 #   $v0 - length of string as integer
-# Registers modified: $sp, $ra
+# Registers modified: None
 input_get_length:
-        addi $sp, $sp, -4
-        sw $ra, 0($sp)
+        move $t0, $a0                       # First index of input string
+        li $t1, 0                           # Input string length
+        lb $t2, input_edge_string_max_len   # Get max length of string
 
-        move $t0, $a0   # First index of input string
-        li $t1, 0       # Input string length
-        lb $t2, input_edge_string_max_len
-
+        # For char in string
         i_gl_loop:
-                lb $t3, ($t0)
+                # If max_length || null_term || or line_feed: end
+                lb $t3, ($t0)            # Load the current character to t3
                 bge $t1, $t2, i_gl_end   # If length == 3, exit
-                beqz $t3, i_gl_end       # If null terminated
-                seq $t3, $t3, 0x0A
-                bnez $t3, i_gl_end       # If line feed terminated
+                beqz $t3, i_gl_end       # If t3 is null terminator
+                seq $t3, $t3, 0x0A       # Is t3 a line feed (enter)
+                bnez $t3, i_gl_end       # If so end loop
 
-                add $t0, $t0, 1
-                addi $t1, $t1, 1
+                # Increment index and counter
+                addi $t0, $t0, 1         # Move to next char
+                addi $t1, $t1, 1         # Increment length
 
-                j i_gl_loop
+                j i_gl_loop              # Loop again
 
+        # End loop
         i_gl_end:
-                move $v0, $t1
-
-                lw $ra, 0($sp)
-                addi $sp, $sp, 4
-
-                jr $ra
-
+                # Return counter
+                move $v0, $t1   # Save counter
+                jr $ra          # Return
 
 
 # Description: Splits the edge string into two indices for the array.
 #
 # Pseudo representation:
-#     private (int col, int row) input_split_input(String $a0, int $a1):
-#         // EX: $a0 = "A11"
+#     private input_split_input(String a0, int a1): (int col, int row):
+#         // EX: a0 = "A11", a1 = 3
 #         int col = input[0] - 0x41 # 'A' becomes 0
 #         int row = input[1] - 0x30 # '1' becomes 1
 #         if (input.length == 2):
@@ -222,126 +219,176 @@ input_get_length:
 #   $v1 - the row index of the selected edge
 # Registers modified: $sp, $ra
 input_split_input:
-        addi $sp, $sp, -4
-        sw $ra, 0($sp)
+        addi $sp, $sp, -4           # Make room in stack
+        sw $ra, 0($sp)              # Save the return address
 
-        lbu $t0, 0($a0)
-        lbu $t1, 1($a0)
+        # Get characters
+        lbu $t0, 0($a0)             # Get first char,  t0 = a0[0]
+        lbu $t1, 1($a0)             # Get second char, t1 = a0[1]
 
-        subu $t0, $t0, 0x41
-        subu $t1, $t1, 0x30
+        # Convert from ascii to indices
+        subu $t0, $t0, 0x41         # Subtract 0x41 ('A'), from the letter
+        subu $t1, $t1, 0x30         # Subtract 0x30 ('0'), from the "number"
 
-        seq $t2, $a1, 2
-        bnez $t2, i_si_exit
+        # If len == 2, exit
+        seq $t2, $a1, 2             # Compare length with '2'
+        bne $t2, $zero, i_si_exit   # If equal, exit
 
-        i_si_two_nums:   # a0 will not be greater than 3 chars
-                lbu $t3, 2($a0)
-                subu $t3, $t3, 0x30
-                li $t4, 10
-                mulu $t1, $t1, $t4
-                addu $t1, $t1, $t3
+        # If len == 3, there are two numbers
+        i_si_two_nums:
+                # Combine the two numbers
+                lbu $t3, 2($a0)       # Get third char, t3 = a0[2]
+                subu $t3, $t3, 0x30   # Subtract 0x30 ('0'), from the "number"
+                mulu $t1, $t1, 10     # Multiply the first num by 10
+                addu $t1, $t1, $t3    # Add the second number
 
-                jal print_break
+                # If the len is 3, the Mars GUI forces an enter resulting in odd formatting (CLI doesn't do this)
+                jal print_break       # Print break for formatting
 
+        # Exit program
         i_si_exit:
-                addi $t1, $t1, -1
+                addi $t1, $t1, -1   # Convert the num to an index
 
-                move $v0, $t0
-                move $v1, $t1
+                move $v0, $t0       # Save column index
+                move $v1, $t1       # Save row index
 
-                lw $ra, 0($sp)
-                addi $sp, $sp, 4
+                lw $ra, 0($sp)      # Restore the return address
+                addi $sp, $sp, 4    # Restore the stack
 
-                jr $ra
+                jr $ra              # Return
 
-
-input_get_caller_address:
-        slt $t0, $a0, $a1
-        beq $t0, $zero, i_gca_swap_values
-
-        j i_gca_continue
-
-        i_gca_swap_values:
-                move $t0, $a0
-                move $a1, $a0
-                move $a0, $t0
-
-        i_gca_continue:
-                slt $t0, $ra $a1
-                beq $t0, $zero, i_gca_second_label
-
-                move $v0, $a0
-
-                jr $ra
-
-        i_gca_second_label:
-                move $v0, $a1
-                jr $ra
-# a0 length
+# Description: Checks whether the strings input length is valid, if it isn't
+#              an error is thrown and the program requests new input.
+#
+# Pseudo representation:
+#     public input_validate_input_length(int a0): void:
+#         # len == a0
+#         if (len < 2) print(warning(0x00))
+#         jump to i_gui_begin
+#     end input_validate_input_length()
+#
+# Inputs:
+#   $a0 - length of the edge string
+# Outputs:
+#   None
+# Registers modified: $sp, $ra
 input_validate_input_length:
-        addi $sp, $sp, -4
-        sw $ra, 0($sp)
+        addi $sp, $sp, -4               # Make room in stack
+        sw $ra, 0($sp)                  # Save the return address
 
-        slti $t0, $a0, 2
-        bne $t0, $zero, i_vil_invalid
+        # Check if length < 2
+        slti $t0, $a0, 2                # t0 = a0 < 2
+        bne $t0, $zero, i_vil_invalid   # if (t0), invalid length
 
+        # Length is valid, exit
         j i_vil_valid
 
+        # Length is invalid
         i_vil_invalid:
-                li $a0, 0x00
-                jal _warning_throw_warning
-                addi $sp, $sp, 16
-                j i_gui_begin
+                # Throw warning and reget input
+                li $a0, 0x00                 # Error for input too short
+                jal _warning_throw_warning   # Print the warning
+                addi $sp, $sp, 16            # Restore the stack
+                j i_gui_begin                # Get new input
 
+        # Length is valid
         i_vil_valid:
-                lw $ra, 0($sp)
-                addi $sp, $sp, 4
-                jr $ra
+                lw $ra, 0($sp)     # Restore the return address
+                addi $sp, $sp, 4   # Restore the stack
 
+                jr $ra             # Return
+
+# Description: Validates the input after being converted to indices, it'll
+#              check the ranges of both column and row, verify it's an edge,
+#              and then check if the edge is already occupied. If all tests
+#              pass the program continues, if not an error is thrown and the
+#              program requests new input.
+#
+# Pseudo representation:
+#     public input_validate_input(int a0, int a1): void:
+#         col, row = a0, a1
+#
+#         # Check if col index is between 0-16
+#         if !(0 <= col <= 16):
+#             print(warning(0x01)) # Invalid Col
+#             jump to i_gui_begin
+#
+#         # Check if row index is between 0-12
+#         if !(0 <= row <= 12):
+#             print(warning(0x02)) # Invalid row
+#             jump to i_gui_begin
+#
+#         # Check if the edge is a valid edge
+#         if (isEven(col) && isEven(row)) ||
+#            (isOdd(col) && isOdd(row)):
+#             print(warning(0x03)) # Not an edge
+#             jump to i_gui_begin
+#
+#         # Check if the edge is occupied
+#         if (board_array[row][col] != ' '):
+#             print(warning(0x04)) # Edge occupied
+#             jump to i_gui_begin
+#
+# Inputs:
 #   $a0 - the col index of the selected edge
 #   $a1 - the row index of the selected edge
+# Outputs:
+#   None
+# Registers modified: $sp, $ra
 input_validate_input:
-        addi $sp, $sp, -4
-        sw $ra, 0($sp)
+        addi $sp, $sp, -4   # Make room in stack
+        sw $ra, 0($sp)      # Save the return address
 
+        # Check column and row indices
         i_vir_check_ranges:
-        li $t0, 0x01
-        slti $t1, $a0, 0                # if (a0 < 0) t1 = 1
-        bne $t1, $zero, i_vir_invalid   # if t1 != 0 invalid
+                # Check if col index is between 0-16
+                li $t0, 0x01                    # Error for invalid column index
 
-        sgt $t1, $a0, 16                # if (a0 > 16) t1 = 1
-        bne $t1, $zero, i_vir_invalid   # if t1 !- 0 invalid
+                # If !(0 <= col <= 16): invalid
+                slti $t1, $a0, 0                # Is column index less than 0
+                bne $t1, $zero, i_vir_invalid   # If so col index is invalid
+                sgt $t1, $a0, 16                # Is column index greater than 16
+                bne $t1, $zero, i_vir_invalid   # If so col index is invalid
 
-        li $t0, 0x02
-        slti $t1, $a1, 0
-        bne $t1, $zero, i_vir_invalid
+                # Check if row index is between 0-12
+                li $t0, 0x02                    # Error for invalid row index
 
-        sgt $t1, $a1, 12
-        bne $t1, $zero, i_vir_invalid
+                # If !(0 <= row <= 12): invalid
+                slti $t1, $a1, 0                # Is row index less than 0
+                bne $t1, $zero, i_vir_invalid   # If so row index is invalid
+                sgt $t1, $a1, 12                # Is row index greater than 12
+                bne $t1, $zero, i_vir_invalid   # If so row index is invalid
 
+        # Check if the edge is a valid edge
         i_vir_check_edge:
-        li $t0, 0x03
-        andi $t1, $a0, 0x01
-        andi $t2, $a1, 0x01
+                li $t0, 0x03                # Error for invalid edge
+                andi $t1, $a0, 0x01         # Check if col is even, t1 = isEven(col)
+                andi $t2, $a1, 0x01         # Check if row is even, t2 = isEven(row)
 
-        addu $t1, $t1, $t2
-        bne $t1, 1, i_vir_invalid
+                # Valid edge is one odd, one even index
+                addu $t1, $t1, $t2          # Add results of isEven
+                bne $t1, 1, i_vir_invalid   # If result is not 1 (false + true), then it's invalid
 
+        # Check if the edge is occupied
         i_vir_check_occupied:
-        jal board_is_edge_unclaimed   #TAKESE AO AND A1
-        li $t0, 0x04
-        andi $t1, $v0, 0x01
-        beq $t1, $zero, i_vir_invalid
+                jal board_is_edge_unclaimed     # Checks if current edge is a space
+                li $t0, 0x04                    # Error for claimed edge
+                andi $t1, $v0, 0x01             # If claimed, t1 = 0
+                beq $t1, $zero, i_vir_invalid   # If t1 == 0, it's claimed, invalid
 
+        # Valid edge, continue
         j i_vir_valid
 
+        # Edge selected is invalid
         i_vir_invalid:
-                move $a0, $t0
-                jal _warning_throw_warning
-                addi $sp, $sp, 4
-                j i_gui_begin
+                move $a0, $t0                # Move appropriate error to subroutine argument
+                jal _warning_throw_warning   # Print the warning and return
+                addi $sp, $sp, 4             # Restore the stack
+                j i_gui_begin                # Request new input
 
+        # Edge selected is valid
         i_vir_valid:
-                lw $ra, 0($sp)
-                addi $sp, $sp, 4
-                jr $ra
+                lw $ra, 0($sp)     # Restore the return address
+                addi $sp, $sp, 4   # Restore the stack
+
+                jr $ra             # Return
