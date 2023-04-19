@@ -1,4 +1,11 @@
-# WIP
+# File: warning.asm
+# Author: Nicholas Donovan
+# Class: CS 2340.004
+# Date: Apr. 19, 2023
+# Purpose: Responsible for catching non-fatal exceptions, uses a jump table to jump 
+#   to the appropriate subroutine and prints the message if applicable. If the program 
+#   can resume it jumps back to the return address and lets the caller decide on the 
+#   action needed. Else it will exit the program.
 
 .data
         _warning_jump_table:
