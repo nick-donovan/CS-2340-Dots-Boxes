@@ -6,21 +6,22 @@
 #  functions for initializing the board, updating the state of the board after a move is made,
 #  and printing the board to the console.
 
-# I'll add comments to this later -ND
-
 .data
         board_row_size:      .byte 13
         board_column_size:   .byte 17
         board_symbol_char:   .byte '+'
-        board_space_char:      .byte ' '
-        board_array:        .space 221
+        board_space_char:    .byte ' '
+        board_array:         .space 221
         board_header_string: .asciiz "   A B C D E F G H I J K L M N O P Q \n   ---------------------------------\n"
         board_player_symbol: .byte 'P'
-        board_opp_symbol: .byte 'C'
+        board_opp_symbol:    .byte 'C'
         .globl board_print_board
         .globl board_initialize_board
         .globl board_update_edge
-        .globl board_is_edge_claimed
+        .globl board_is_edge_unclaimed
+        .globl board_get_board
+        .globl board_get_column_size
+        .globl board_get_row_size
 
 .text
 # Description: Initializes the game board with the board_symbol_char as dots
@@ -236,24 +237,82 @@ board_update_edge:
 
         jr $ra                  # Return
 
-board_is_edge_claimed:
-	addi $sp, $sp -4
-	sw $ra, 0($sp)
-	
-        la $t0, board_array            # Load address of the array into $t0
-        la $t1, board_row_size         # Load rowSize address into $t1
-        lb $t1, ($t1)                  # Set $t1 to rowSize integer
-        la $t2, board_column_size      # Load colSize address into $t2
-        lb $t2, ($t2)                  # Set $t2 to colSize integer
 
-        mul $t4, $a1, $t2              # Get current row
-        add $t4, $t4, $a0              # Get current element index in row
-        add $t4, $t4, $t0              # Add index to array address to get current address
-               
-        lb $t4, ($t4)
-	seq $v0, $t4, 0x20
-        
-        lw $ra, 0($sp)
-        addi $sp, $sp, 4
-        
+# Description: Returns true if the edge is not claimed, false if it is
+#
+# Pseudo representation:
+#     public boolean board_is_edge_unclaimed(int a0, int a1):
+#         return board_array[a1][a0] == ' '
+#     end board_is_edge_unclaimed()
+#
+# Inputs:
+#   $a0 - Col index of the edge
+#   $a1 - Row index of the edge
+# Outputs:
+#   None
+# Registers modified: None
+board_is_edge_unclaimed:
+        la $t0, board_array         # Load address of the array into $t0
+        la $t1, board_row_size      # Load rowSize address into $t1
+        lb $t1, ($t1)               # Set $t1 to rowSize integer
+        la $t2, board_column_size   # Load colSize address into $t2
+        lb $t2, ($t2)               # Set $t2 to colSize integer
+
+        mul $t4, $a1, $t2           # Get current row
+        add $t4, $t4, $a0           # Get current element index in row
+        add $t4, $t4, $t0           # Add index to array address to get current address
+
+        lb $t4, ($t4)               # Load current element in t4
+        seq $v0, $t4, 0x20          # v0 = (t4 == ' ')
+
+        jr $ra                      # Return
+
+# Description: Returns the base address of the board array
+#
+# Pseudo representation:
+#     public char[][] board_get_board():
+#         return board_array
+#     end board_get_board()
+#
+# Inputs:
+#   None
+# Outputs:
+#   $v0 - the base address of the board array
+# Registers modified: None
+board_get_board:
+        la $v0, board_array   # Load address of the array into $v0
+        jr $ra                # Return
+
+# Description: Returns the base address of the board array
+#
+# Pseudo representation:
+#     public int board_get_column_size():
+#         return board_column_size
+#     end board_get_column_size()
+#
+# Inputs:
+#   None
+# Outputs:
+#   $v0 - the base address of the board array
+# Registers modified: None
+board_get_column_size:
+        la $v0, board_column_size
+        lb $v0, ($v0)
+        jr $ra
+
+# Description: Returns the base address of the board array
+#
+# Pseudo representation:
+#     public int board_get_row_size():
+#         return board_column_size
+#     end board_get_row_size()
+#
+# Inputs:
+#   None
+# Outputs:
+#   $v0 - the base address of the board array
+# Registers modified: None
+board_get_row_size:
+        la $v0, board_row_size
+        lb $v0, ($v0)
         jr $ra
