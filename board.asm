@@ -20,6 +20,7 @@
         .globl board_print_board
         .globl board_initialize_board
         .globl board_update_edge
+        .globl board_is_edge_claimed
 
 .text
 # Description: Initializes the game board with the board_symbol_char as dots
@@ -132,8 +133,6 @@ board_print_board:
         lb $t2, ($t2)               # Set $t2 to colSize integer
         li $t3, 0                   # Initialize row index to 0 (int row = 0)
 
-        jal print_break
-
         la $a0, board_header_string
         jal print_string
 
@@ -236,3 +235,25 @@ board_update_edge:
         addi $sp, $sp, 4        # Restore the stack
 
         jr $ra                  # Return
+
+board_is_edge_claimed:
+	addi $sp, $sp -4
+	sw $ra, 0($sp)
+	
+        la $t0, board_array            # Load address of the array into $t0
+        la $t1, board_row_size         # Load rowSize address into $t1
+        lb $t1, ($t1)                  # Set $t1 to rowSize integer
+        la $t2, board_column_size      # Load colSize address into $t2
+        lb $t2, ($t2)                  # Set $t2 to colSize integer
+
+        mul $t4, $a1, $t2              # Get current row
+        add $t4, $t4, $a0              # Get current element index in row
+        add $t4, $t4, $t0              # Add index to array address to get current address
+               
+        lb $t4, ($t4)
+	seq $v0, $t4, 0x20
+        
+        lw $ra, 0($sp)
+        addi $sp, $sp, 4
+        
+        jr $ra
