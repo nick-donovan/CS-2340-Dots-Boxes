@@ -96,7 +96,3 @@ _w_invalid_edge_input_invalid_edge:
 _w_invalid_edge_input_edge_claimed:
  	la $a0, _w_iei_edge_claimed_msg
         j _w_tw_print_string_rtc
-
-exit:
-        li $v0, 10
-        syscall

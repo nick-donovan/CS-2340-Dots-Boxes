@@ -10,6 +10,7 @@
         .globl print_int
         .globl print_char
         .globl print_break
+        .globl exit
 
 .text
 main:
@@ -32,10 +33,7 @@ main:
         addi $sp, $sp, 4
         
         j exit
-          
-exit:
-        li $v0, 10                   # Syscall for program term
-        syscall                      # Exit program
+
 
         
 # Description: Prints a string to stdout.
@@ -86,3 +84,16 @@ print_break:
         li $v0, 11
         syscall
         jr $ra
+        
+        
+
+# Description: Exits the program.
+#
+# Inputs: 
+#   None
+# Outputs:
+#   None
+# Registers modified: None  
+exit:
+        li $v0, 10                   # Syscall for program term
+        syscall                      # Exit program
