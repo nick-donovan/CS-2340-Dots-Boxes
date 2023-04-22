@@ -79,8 +79,8 @@ _warning_throw_warning:
 
 # Called when the input is too short
 _w_invalid_edge_input_too_short:
-         la $a0, _w_iei_too_short_msg  # Load proper message
-        j _w_tw_print_string_rtc       # Print message and return to program
+         la $a0, _w_iei_too_short_msg    # Load proper message
+        j _w_tw_print_string_rtc         # Print message and return to program
 
 # Called when the column index is invalid
 _w_invalid_edge_input_invalid_col:

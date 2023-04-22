@@ -14,27 +14,42 @@
 
 .text
 main:
-        addi $sp, $sp, -4
-        sw $ra, 0($sp)
-        
+
         jal board_initialize_board
-        jal board_print_board
         
-        jal input_get_user_input
+        jal game_loop
+
+	# jal score_print_final_scores
         
-        move $a0, $v0   # X index to change
+        j exit
+
+game_loop: # THIS IS JUST A DRAFT, CHANGE IT TO HOW THE IMPLEMENTATION IS DONE -ND
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	jal board_print_board
+	
+	jal input_get_user_input
+	move $a0, $v0   # X index to change
         move $a1, $v1   # Y Index to change
         li $a2, 0       # 0 is player, 1 is Computer
         jal board_update_edge  # update edge
         
-        jal board_print_board
+        # jal computer_get_computer_move
+        # move $a0, $v0   # X index to change
+        # move $a1, $v1   # Y Index to change
+        # li $a2, 1       # 0 is player, 1 is Computer
+        # jal board_update_edge  # update edge
+        
+        # jal score_update_score
+        
+        # jal score_is_game_over
+        # beq $v0, $zero, game_loop
         
         lw $ra, 0($sp)
         addi $sp, $sp, 4
         
-        j exit
-
-
+        jr $ra
         
 # Description: Prints a string to stdout.
 #
