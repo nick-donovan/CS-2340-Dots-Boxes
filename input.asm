@@ -11,14 +11,16 @@
         input_user_selected_edge_size: .byte 4
         input_edge_string_max_len:     .byte 3
         input_user_prompt_string:      .asciiz "Enter an edge to claim (ex: A2): "
-        input_invalid_input_warning:   .asciiz "Please enter a letter (A-O) and a number (0-11)."
-        input_insf_characters_warning: .asciiz "PLACEHOLDER WARNING - NOT ENOUGH CHARS IN EDGE STRING"
 
         .globl input_get_user_input
         .globl input_convert_edge_string
+        .globl input_is_valid_edge
+        .globl input_is_row_valid
+        .globl input_is_col_valid
 
 .text
-input_main_test: # Remove before submission
+input_main_test:   # Remove before submission
+
         jal board_initialize_board
         li $a0, 0
         li $a1, 1
@@ -309,18 +311,17 @@ input_validate_input_length:
 #         col, row = a0, a1
 #
 #         # Check if col index is between 0-16
-#         if !(0 <= col <= 16):
+#         if !(input_is_valid_col(a0)):
 #             print(warning(0x01)) # Invalid Col
 #             jump to i_gui_begin
 #
 #         # Check if row index is between 0-12
-#         if !(0 <= row <= 12):
+#         if !(input_is_valid_row(a1)):
 #             print(warning(0x02)) # Invalid row
 #             jump to i_gui_begin
 #
 #         # Check if the edge is a valid edge
-#         if (isEven(col) && isEven(row)) ||
-#            (isOdd(col) && isOdd(row)):
+#         if !(input_is_valid_edge)
 #             print(warning(0x03)) # Not an edge
 #             jump to i_gui_begin
 #
@@ -336,45 +337,44 @@ input_validate_input_length:
 #   None
 # Registers modified: $sp, $ra
 input_validate_input:
-        addi $sp, $sp, -4   # Make room in stack
-        sw $ra, 0($sp)      # Save the return address
+        addi $sp, $sp, -12              # Make room in stack
+        sw $s0, 8($sp)                  # Save s0
+        sw $s1, 4($sp)                  # Save s1
+        sw $ra, 0($sp)                  # Save the return address
+
+        move $s0, $a0                   # Save the col index
+        move $s1, $a1                   # Save the row index
 
         # Check column and row indices
-        i_vir_check_ranges:
-                # Check if col index is between 0-16
-                li $t0, 0x01                    # Error for invalid column index
+        # Check if col index is between 0-16
+        jal input_is_col_valid          # Check col range
 
-                # If !(0 <= col <= 16): invalid
-                slti $t1, $a0, 0                # Is column index less than 0
-                bne $t1, $zero, i_vir_invalid   # If so col index is invalid
-                sgt $t1, $a0, 16                # Is column index greater than 16
-                bne $t1, $zero, i_vir_invalid   # If so col index is invalid
+        li $t0, 0x01                    # Error for invalid column index
+        beq $v0, $zero, i_vir_invalid   # If return is 0, invalid
 
-                # Check if row index is between 0-12
-                li $t0, 0x02                    # Error for invalid row index
+        # Check if row index is between 0-12
+        move $a0, $s1                   # Move row to arg 0
+        jal input_is_row_valid          # Check row range
 
-                # If !(0 <= row <= 12): invalid
-                slti $t1, $a1, 0                # Is row index less than 0
-                bne $t1, $zero, i_vir_invalid   # If so row index is invalid
-                sgt $t1, $a1, 12                # Is row index greater than 12
-                bne $t1, $zero, i_vir_invalid   # If so row index is invalid
+        li $t0, 0x02                    # Error for invalid row index
+        beq $v0, $zero, i_vir_invalid   # If return is 0, invalid
+
 
         # Check if the edge is a valid edge
-        i_vir_check_edge:
-                li $t0, 0x03                # Error for invalid edge
-                andi $t1, $a0, 0x01         # Check if col is even, t1 = isEven(col)
-                andi $t2, $a1, 0x01         # Check if row is even, t2 = isEven(row)
+        move $a0, $s0                   # Move col to arg 0
+        move $a1, $s1                   # Move row to arg 1
+        jal input_is_valid_edge         # Check if selection is valid edge
 
-                # Valid edge is one odd, one even index
-                addu $t1, $t1, $t2          # Add results of isEven
-                bne $t1, 1, i_vir_invalid   # If result is not 1 (false + true), then it's invalid
+        li $t0, 0x03                    # Error for invalid edge
+        beq $v0, $zero, i_vir_invalid   # If return is 0, invalid
+
 
         # Check if the edge is occupied
-        i_vir_check_occupied:
-                jal board_is_edge_unclaimed     # Checks if current edge is a space
-                li $t0, 0x04                    # Error for claimed edge
-                andi $t1, $v0, 0x01             # If claimed, t1 = 0
-                beq $t1, $zero, i_vir_invalid   # If t1 == 0, it's claimed, invalid
+        jal board_is_edge_unclaimed     # Checks if current edge is a space
+        li $t0, 0x04                    # Error for claimed edge
+        andi $t1, $v0, 0x01             # If claimed, t1 = 0
+        beq $t1, $zero, i_vir_invalid   # If t1 == 0, it's claimed, invalid
+
 
         # Valid edge, continue
         j i_vir_valid
@@ -383,12 +383,139 @@ input_validate_input:
         i_vir_invalid:
                 move $a0, $t0                # Move appropriate error to subroutine argument
                 jal _warning_throw_warning   # Print the warning and return
-                addi $sp, $sp, 4             # Restore the stack
+                addi $sp, $sp, 12            # Restore the stack
                 j i_gui_begin                # Request new input
 
         # Edge selected is valid
         i_vir_valid:
-                lw $ra, 0($sp)     # Restore the return address
-                addi $sp, $sp, 4   # Restore the stack
+                lw $ra, 0($sp)      # Restore the return address
+                addi $sp, $sp, 12   # Restore the stack
 
+                jr $ra              # Return
+
+
+# Description: Checks the provided column index and makes sure it's greater
+#              or equal to 0 and less than the board column size
+#
+# Pseudo representation:
+#     public input_is_col_valid(int a0): boolean:
+#         col = a0
+#         int col_size = board_get_column_size - 1
+#         return 0 <= col <= col_size
+#     end input_is_col_valid
+# Inputs:
+#   $a0 - the column index to validate
+# Outputs:
+#   $v0 - 0x01 if true, 0x00 if false
+# Registers modified: $sp, $ra
+input_is_col_valid:
+        addi $sp, $sp, -4               # Make room in stack
+        sw $ra, 0($sp)                  # Save return address
+
+        # Get max column index
+        jal board_get_column_size       # Get column size
+        move $t0, $v0                   # Save to t0
+        subi $t0, $t0, 1                # Subtract 1
+
+        # Use v0 as a boolean
+        li $v0, 0x01                    # Default to true
+
+        # If !(0 <= col <= 16): invalid
+        slti $t1, $a0, 0                # Is column index less than 0
+        bne $t1, $zero, i_icv_invalid   # If so col index is invalid
+        sgt $t1, $a0, $t0               # Is column index greater than column size - 1
+        bne $t1, $zero, i_icv_invalid   # If so col index is invalid
+
+
+        # Return v0 as valid
+        j i_icv_exit
+
+        # Input is invalid, mark false and return
+        i_icv_invalid:
+                li $v0, 0x00   # Set v0 to false
+
+        i_icv_exit:
+                lw $ra 0($sp)      # Load return address
+                addi $sp, $sp, 4   # Restore the stack
                 jr $ra             # Return
+
+# Description: Checks the provided row index and makes sure it's greater
+#              or equal to 0 and less than the board row size
+#
+# Pseudo representation:
+#     public input_is_row_valid(int a0): boolean:
+#         row = a0
+#         int row_size = board_get_row_size - 1
+#         return 0 <= row <= row_size
+#     end input_is_row_valid
+# Inputs:
+#   $a0 - the row index to validate
+# Outputs:
+#   $v0 - 0x01 if true, 0x00 if false
+# Registers modified: $sp, $ra
+input_is_row_valid:
+        addi $sp, $sp, -4               # Make room in stack
+        sw $ra, 0($sp)                  # Save return address
+
+        # Get max row index
+        jal board_get_row_size          # Get column size
+        move $t0, $v0                   # Save to t0
+        subi $t0, $t0, 1                # Subtract 1
+
+        # Use v0 as a boolean
+        li $v0, 0x01                    # Default to true
+
+        # If !(0 <= row <= 12): invalid
+        slti $t1, $a0, 0                # Is row index less than 0
+        bne $t1, $zero, i_irv_invalid   # If so row index is invalid
+        sgt $t1, $a0, $t0               # Is row index greater than row size - 1
+        bne $t1, $zero, i_irv_invalid   # If so row index is invalid
+
+        # Return v0 as valid
+        j i_irv_exit
+
+        # Input is invalid, mark false and return
+        i_irv_invalid:
+                li $v0, 0x00   # Set v0 to false
+
+        # Exit the subroutine
+        i_irv_exit:
+                lw $ra 0($sp)      # Load return address
+                addi $sp, $sp, 4   # Restore the stack
+                jr $ra             # Return
+
+
+# Description: Checks whether the selected edge is an edge. If the row and
+#              column are both either odd or even, it's not an edge.
+#
+# Pseudo representation:
+#     public input_is_valid_edge(int a0, int a1): boolean:
+#         col = a0
+#         row = a1
+#         return (isEven(col) && !isEven(row)) || (!isEven(col) && isEven(row))
+#     end input_is_valid_edge
+# Inputs:
+#   $a0 - the column index to validate
+#   $a1 - the row index to validate
+# Outputs:
+#   $v0 - 0x01 if true, 0x00 if false
+# Registers modified: $sp, $ra
+input_is_valid_edge:
+        # Use v0 as a boolean
+        li $v0, 0x01                # Default to true
+
+        # Validate columm and row selection
+        andi $t0, $a0, 0x01         # Check if col is even, t0 = isEven(col)
+        andi $t1, $a1, 0x01         # Check if row is even, t1 = isEven(row)
+
+        # Valid edge is one odd, one even index
+        addu $t0, $t0, $t1          # Add results of isEven
+        bne $t0, 1, i_ive_invalid   # If result is not 1 (false + true), then it's invalid
+
+        # Valid
+        jr $ra                      # Return true
+
+        # Invalid
+        i_ive_invalid:
+                li $v0, 0x00   # Set v0 to false
+                jr $ra         # Return
