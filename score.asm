@@ -1,5 +1,5 @@
 # File: computer.asm
-# Author: [ADD YOUR NAMES HERE IF YOU WORK ON IT]
+# Author: Rushi Kona
 # Class: CS 2340.004
 # Date: Mar. 26, 2023
 # Purpose: Responsible for keeping track of the score during the game. Functions for 
@@ -7,11 +7,11 @@
 #  the game.
 
 .data
-        .globl score_check
+        .globl score_update_score
 .text
 #input  $a0 $a1 x y coords for edge that was placed  $a2-current player value, $a3-current player score 
 #output $v0 next player value, $v1 current player score (after edge placed)
-score_check:
+score_update_score:
         addi $sp, $sp, -4              # Make room in stack
         sw $ra, 0($sp)                 # Save the return address
 
