@@ -17,7 +17,16 @@ main:
 
         jal board_initialize_board
         
-        jal game_loop
+	jal score_test_init
+	jal score_test
+	move $s0, $v0
+	
+	jal board_print_board
+	
+	move $a0, $s0
+	jal print_int
+        
+        # jal game_loop
 
 	# jal score_print_final_scores
         
@@ -112,3 +121,200 @@ print_break:
 exit:
         li $v0, 10                   # Syscall for program term
         syscall                      # Exit program
+
+
+score_test_init:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	li $a0, 1
+	li $a1, 0
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 1
+	li $a1, 4
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 1
+	li $a1, 2
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 0
+	li $a1, 1
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 2
+	li $a1, 1
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 2
+	li $a1, 3
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 0
+	li $a1, 3
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 5
+	li $a1, 2
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 4
+	li $a1, 3
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 6
+	li $a1, 3
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 5
+	li $a1, 4
+	li $a2, 1
+	jal board_update_edge
+	
+	##
+	
+	li $a0, 15
+	li $a1, 12
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 15
+	li $a1, 10
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 16
+	li $a1, 11
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 14
+	li $a1, 11
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 15
+	li $a1, 12
+	li $a2, 1
+	jal board_update_edge
+	
+	##
+	 
+	li $a0, 9
+	li $a1, 12
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 9
+	li $a1, 10
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 10
+	li $a1, 11
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 8
+	li $a1, 11
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 9
+	li $a1, 12
+	li $a2, 1
+	jal board_update_edge
+	
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	
+	jr $ra
+
+score_test:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	#input  $a0 $a1 x y cooards for edge that was placed  $a2-current player value, $a3-current player score 
+	#output $v0 next player value, $v1 current player score (after edge placed)
+
+	li $s6, 0 # comp score
+	
+	li $s0, 96
+	li $s1, 97
+	li $s2, 98
+
+	
+	# Test double
+	li $a0, 1
+	li $a1, 2
+	li $a2, 0
+	move $a3, $s6
+	jal score_update_score
+	move $s6, $v1
+	
+	# Test vert
+	li $a0, 4
+	li $a1, 3
+	li $a2, 0
+	move $a3, $s6
+	jal score_update_score
+	move $s6, $v1
+		
+	# Test horiz
+	li $a0, 5
+	li $a1, 4
+	li $a2, 0
+	move $a3, $s6
+	jal score_update_score
+	move $s6, $v1
+	
+	# Test top edge
+	li $a0, 1
+	li $a1, 0
+	li $a2, 0
+	move $a3, $s6
+	jal score_update_score
+	move $s6, $v1
+	
+	# Test left edge
+	li $a0, 0
+	li $a1, 1
+	li $a2, 0
+	move $a3, $s6
+	jal score_update_score
+	move $s6, $v1
+	
+	# Test right edge
+	li $a0, 16
+	li $a1, 11
+	li $a2, 0
+	move $a3, $s6
+	jal score_update_score
+	move $s6, $v1
+	
+	# Test bottom edge
+	li $a0, 9
+	li $a1, 12
+	li $a2, 0
+	move $a3, $s6
+	jal score_update_score
+	move $s6, $v1
+	
+	move $v0, $s6
+	
+	
+	lw $ra, 0($sp)########################
+	addi $sp, $sp, 4
+	
+	jr $ra
