@@ -1,4 +1,4 @@
-# File: computer.asm
+# File: score.asm
 # Author: Rushi Kona
 # Class: CS 2340.004
 # Date: Mar. 26, 2023
