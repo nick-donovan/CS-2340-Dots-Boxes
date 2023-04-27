@@ -4,12 +4,13 @@
 # Date: Mar. 26, 2023
 # Purpose: Responsible for keeping track of the score during the game. Functions for 
 #  updating the score after each move, and displaying the final score at the end of 
-#  the game.
+#  the game. Updating the center if a player owns that box.
+
 
 .data
         .globl score_update_score
 .text
-#input  $a0 $a1 x y coords for edge that was placed  $a2-current player value, $a3-current player score 
+#input  $a0 $a1 x y cooards for edge that was placed  $a2-current player value, $a3-current player score 
 #output $v0 next player value, $v1 current player score (after edge placed)
 score_update_score:
         addi $sp, $sp, -4              # Make room in stack
@@ -19,12 +20,16 @@ score_update_score:
         add $s1, $a1, $zero    #save original y val
         addi $s2, $a2, 0     #save orignal player val
 
+
         jal isColEven                  #check if column is even return bool to $v0
         bnez $v0, horiz_edge_placed    #Branch if $v0 != 0 horiz edge was placed else vertical was placed
                 bnez $a0, last_col             #Branch if col != 0
                         jal horizR             #Check box Right
                         beqz $v0, return_from_firstcol    #branch if $v0 is 0(no box) to return
                                 addi $a3, $a3, 1       #increments input score by 1
+                                addi $a0, $s0, 1       #x val goes to center of box to right
+                                add $a1, $s1, $zero     #y val restore
+                                jal board_update_edge      #update center of box
                                 xori $a2, $a2, 1       #switch player for next turn
                         
                 return_from_firstcol:           # no box found right
@@ -42,6 +47,9 @@ score_update_score:
                                 jal horizL             #Check box Left
                                 beqz $v0, return_from_lastcol    #branch if $v0 is 0(no box) to return 
                                         addi $a3, $a3, 1       #increments input score by 1
+                                        addi $a0, $s0, -1       #x val goes to center of box to right
+                                        add $a1, $s1, $zero     #y val restore
+                                        jal board_update_edge      #update center of box
                                         xori $a2, $a2, 1       #switch player for next turn
                                 
                         return_from_lastcol:
@@ -58,6 +66,11 @@ score_update_score:
                         move $a1, $s1
                         beqz $v0, return_from_nonedgecolR  #branch if $v0 is 0(no box) to return 
                                 addi $a3, $a3, 1       #increments input score by 1
+                                addi $a0, $s0, 1       #x val goes to center of box to right
+                                add $a1, $s1, $zero     #y val restore
+                                jal board_update_edge      #update center of box
+                                add $a1, $s1, $zero     #restore y val
+                                add $a0, $s0, $zero     #restore x val
                                 addi $t2, $t2, 1       #points this turn +1
                 return_from_nonedgecolR:
 
@@ -66,6 +79,11 @@ score_update_score:
                         move $a1, $s1
                         beqz $v0, return_from_nonedgecolL  #branch if $v0 is 0(no box) to return 
                                 addi $a3, $a3, 1       #increments input score by 1
+                                addi $a0, $s0, -1       #x val goes to center of box to right
+                                add $a1, $s1, $zero     #y val restore
+                                jal board_update_edge      #update center of box
+                                add $a1, $s1, $zero     #restore y val
+                                add $a0, $s0, $zero     #restore x val
                                 addi $t2, $t2, 1       #points this turn +1
                 return_from_nonedgecolL:
                         beqz $t2, no_box_horiz_B #branches if either only one or two box is found else switch next turn player
@@ -84,6 +102,9 @@ score_update_score:
                         jal vertD             #Check box down
                         beqz $v0, return_from_firstrow    #branch if $v0 is 0(no box) to return
                                 addi $a3, $a3, 1       #increments input score by 1
+                                add $a0, $s0, $zero       #x val restore
+                                addi $a1, $s1, 1        #y val down to center of box
+                                jal board_update_edge      #update center of box
                                 xori $a2, $a2, 1       #switch player for next turn
                         
                 return_from_firstrow:           # no box found down
@@ -101,6 +122,9 @@ score_update_score:
                                 jal vertU             #Check box up
                                 beqz $v0, return_from_lastrow    #branch if $v0 is 0(no box) to return 
                                         addi $a3, $a3, 1       #increments input score by 1
+                                        add $a0, $s0, $zero       #x val restore
+                                        addi $a1, $s1, -1        #y val up to center of box
+                                        jal board_update_edge      #update center of box
                                         xori $a2, $a2, 1       #switch player for next turn
                                 
                         return_from_lastrow:            #no box found up
@@ -117,6 +141,11 @@ score_update_score:
                         move $a1, $s1
                         beqz $v0, return_from_nonedgerowD  #branch if $v0 is 0(no box) to return 
                                 addi $a3, $a3, 1       #increments input score by 1
+                                add $a0, $s0, $zero       #x val restore
+                                addi $a1, $s1, 1        #y val down to center of box
+                                jal board_update_edge      #update center of box
+                                add $a1, $s1, $zero     #restore y val
+                                add $a0, $s0, $zero     #restore x val
                                 addi $t2, $t2, 1       #points this turn +1
                 return_from_nonedgerowD:
 
@@ -125,6 +154,11 @@ score_update_score:
                         move $a1, $s1
                         beqz $v0, return_from_nonedgerowU  #branch if $v0 is 0(no box) to return 
                                 addi $a3, $a3, 1       #increments input score by 1
+                                add $a0, $s0, $zero       #x val restore
+                                addi $a1, $s1, -1        #y val down to center of box
+                                jal board_update_edge      #update center of box
+                                add $a1, $s1, $zero     #restore y val
+                                add $a0, $s0, $zero     #restore x val
                                 addi $t2, $t2, 1       #points this turn +1
                 return_from_nonedgerowU:
                         beqz $t2, no_box_vert_B #branches if no box is found
