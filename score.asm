@@ -50,8 +50,9 @@ score_update_score:
 
                         jr $ra              # Return
 
-                li $t5, 16                  #Load 16(last col) into $t5
+                
                 last_col:                                       #Last column edge case
+                li $t5, 16                  #Load 16(last col) into $t5
                         bne $a0, $t5, not_edgecase_col          #branch if(x!=16)
                                 jal horizL                      #Check box Left
                                 beqz $v0, return_from_lastcol   #branch if $v0 is 0(no box) to return
@@ -134,8 +135,9 @@ score_update_score:
 
                         jr $ra              # Return
 
-                li $t3, 12                  #Load 11(last row) into $t3
+                
                 last_row:                                       #Last column edge case
+                li $t3, 12                  #Load 11(last row) into $t3
                         bne $a1, $t3, not_edgecase_row          #branch if(y!=12)
                                 jal vertU                       #Check box up
                                 beqz $v0, return_from_lastrow   #branch if $v0 is 0(no box) to return
