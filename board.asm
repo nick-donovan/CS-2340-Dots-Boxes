@@ -15,6 +15,7 @@
         board_header_string: .asciiz "   A B C D E F G H I J K L M N O P Q \n   ---------------------------------\n"
         board_player_symbol: .byte 'P'
         board_opp_symbol:    .byte 'C'
+	clear:  .byte   0x1B,0x5B,0x33,0x3B,0x4A,0x1B,0x5B,0x48,0x1B,0x5B,0x32,0x4A
         .globl board_print_board
         .globl board_initialize_board
         .globl board_update_edge
@@ -130,6 +131,10 @@ board_initialize_board:
 board_print_board:
         addi $sp, $sp, -4           # Make room in stack
         sw $ra, 0($sp)              # Save the return address
+        
+        la $a0, clear
+        li $v0, 4
+        syscall
 
         la $t0, board_array         # Load address of the array into $t0
         la $t1, board_row_size      # Load rowSize address into $t1

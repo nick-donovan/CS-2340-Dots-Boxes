@@ -81,14 +81,15 @@ main_game_loop:
 
 	# Start the loop
         m_gl_start: 
-        	# Print the board
-                jal board_print_board
             
             	# If the player isn't zero, it's the computers turn
                 bne $s7, $zero, m_gl_computer_turn
                 
                 # Otherwise it's the players turn
-                m_gl_user_turn:
+                m_gl_user_turn:             
+                	# Print the board
+	                jal board_print_board
+	                
                 	# Get user input from console
                         jal input_get_user_input # Get input
                         move $s3, $v0 # Save col
@@ -108,6 +109,7 @@ main_game_loop:
                         jal score_update_score
                         move $s7, $v0 # Save the next turn
                         move $s5, $v1 # Save score
+
                 
                 	# If the total score is 48, the game is over break
                         addu $t0, $s5, $s6 # Is sum equal to 48
