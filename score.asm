@@ -13,7 +13,8 @@
 #input  $a0 $a1 x y cooards for edge that was placed  $a2-current player value, $a3-current player score
 #output $v0 next player value, $v1 current player score (after edge placed)
 score_update_score:
-        addi $sp, $sp, -16                               # Make room in stack
+        addi $sp, $sp, -20                               # Make room in stack
+        sw $s3, 16($sp)                                  # Save s3
         sw $s2, 12($sp)                                  # Save s2
         sw $s1, 8($sp)                                   # Save s1
         sw $s0, 4($sp)                                   # Save s0
@@ -22,6 +23,7 @@ score_update_score:
         add $s0, $a0, $zero                              #save original x val
         add $s1, $a1, $zero                              #save original y val
         addi $s2, $a2, 0                                 #save orignal player val
+        li $s3, 0                                        #save number of points added during turn
 
 
         jal isColEven                                    #check if column is even return bool to $v0
@@ -81,7 +83,7 @@ score_update_score:
                                 jal board_update_edge       #update center of box
                                 add $a1, $s1, $zero         #restore y val
                                 add $a0, $s0, $zero         #restore x val
-                                addi $t2, $t2, 1            #points this turn +1
+                                addi $s3, $s3, 1            #points this turn +1
                 return_from_nonedgecolR:
 
                         jal horizL                          #Check box Left
@@ -94,9 +96,9 @@ score_update_score:
                                 jal board_update_edge       #update center of box
                                 add $a1, $s1, $zero         #restore y val
                                 add $a0, $s0, $zero         #restore x val
-                                addi $t2, $t2, 1            #points this turn +1
+                                addi $s3, $s3, 1            #points this turn +1
                 return_from_nonedgecolL:
-                        beqz $t2, no_box_horiz_B   #branches if either only one or two box is found else switch next turn player
+                        beqz $s3, no_box_horiz_B   #branches if either only one or two box is found else switch next turn player
                                 xori $a2, $a2, 1   #switch player for next turn
                 no_box_horiz_B:
                         xori $a2, $a2, 1    #switch player for next turn
@@ -165,7 +167,7 @@ score_update_score:
                                 jal board_update_edge       #update center of box
                                 add $a1, $s1, $zero         #restore y val
                                 add $a0, $s0, $zero         #restore x val
-                                addi $t2, $t2, 1            #points this turn +1
+                                addi $s3, $s3, 1            #points this turn +1
                 return_from_nonedgerowD:
 
                         jal vertU                           #Check box up
@@ -178,9 +180,9 @@ score_update_score:
                                 jal board_update_edge       #update center of box
                                 add $a1, $s1, $zero         #restore y val
                                 add $a0, $s0, $zero         #restore x val
-                                addi $t2, $t2, 1            #points this turn +1
+                                addi $s3, $s3, 1            #points this turn +1
                 return_from_nonedgerowU:
-                        beqz $t2, no_box_vert_B    #branches if no box is found
+                        beqz $s3, no_box_vert_B    #branches if no box is found
                                 xori $a2, $a2, 1   #switch player for next turn
                 no_box_vert_B:
                         xori $a2, $a2, 1    #switch player for next turn
@@ -190,7 +192,8 @@ score_update_score:
                         lw $s0, 4($sp)      # Restore s0
                         lw $s1, 8($sp)      # Restore s1
                         lw $s2, 12($sp)     # Restore s2
-                        addi $sp, $sp, 16   # Restore the stack
+                        lw $s3, 20($sp)     # Restore s3
+                        addi $sp, $sp, 20   # Restore the stack
 
                         jr $ra              # Return
 
