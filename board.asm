@@ -318,7 +318,4 @@ board_get_column_size:
 board_get_row_size:
         lb $v0, board_row_size
         jr $ra
-        
-board_get_opp_symbol:
-	lb $v0, board_opp_symbol
-	jr $ra
+ 

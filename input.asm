@@ -10,7 +10,7 @@
         input_user_selected_edge:      .space 3
         input_user_selected_edge_size: .byte 4
         input_edge_string_max_len:     .byte 3
-        input_user_prompt_string:      .asciiz "Enter an edge to claim (ex: A2): "
+        input_user_prompt_string:      .asciiz "Enter an edge to claim (ex: F5): "
 
         .globl input_get_user_input
         .globl input_convert_edge_string
@@ -19,23 +19,6 @@
         .globl input_is_col_valid
 
 .text
-input_main_test:   # Remove before submission
-
-        jal board_initialize_board
-        li $a0, 0
-        li $a1, 1
-        li $a2, 0
-        jal board_update_edge
-        jal board_print_board
-        jal input_get_user_input
-
-        move $a0, $v0
-        move $a1, $v1
-        li $a2, 0
-        jal board_update_edge
-        jal board_print_board
-
-        j exit
 
 # Description: Prints the input_user_prompt_string and saves a selected edge into
 #              input_user_selected_edge before having it converted to two indices.
