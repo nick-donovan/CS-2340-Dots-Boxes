@@ -19,9 +19,13 @@
         .globl board_initialize_board
         .globl board_update_edge
         .globl board_is_edge_unclaimed
-        .globl board_get_board
-        .globl board_get_column_size
-        .globl board_get_row_size
+        .globl board_array
+        .globl board_column_size
+        .globl board_space_char
+    	.globl board_row_size
+        .globl board_opp_symbol
+        .globl board_symbol_char
+
 
 .text
 # Description: Initializes the game board with the board_symbol_char as dots
@@ -296,8 +300,7 @@ board_get_board:
 #   $v0 - the base address of the board array
 # Registers modified: None
 board_get_column_size:
-        la $v0, board_column_size
-        lb $v0, ($v0)
+        lb $v0, board_column_size
         jr $ra
 
 # Description: Returns the base address of the board array
@@ -313,6 +316,9 @@ board_get_column_size:
 #   $v0 - the base address of the board array
 # Registers modified: None
 board_get_row_size:
-        la $v0, board_row_size
-        lb $v0, ($v0)
+        lb $v0, board_row_size
         jr $ra
+        
+board_get_opp_symbol:
+	lb $v0, board_opp_symbol
+	jr $ra

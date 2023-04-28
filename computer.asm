@@ -1,462 +1,439 @@
 # File: computer.asm
-# Author: Advaith Sreeram, Hari Ramalingam
+# Author: Advaith Sreeram, Hari Ramalingam, Nicholas Donovan
 # Class: CS 2340.004
 # Date: Mar. 26, 2023
 # Purpose: Responsible for implementing the computer's strategy for selecting moves. 
 #  Functions for choosing a random move, selecting the move that creates the most boxes, 
 #  or using a more advanced algorithm to make smarter moves.
+
 .data
-	.globl computer_get_Index
+	.globl computer_calculate_best_score
 
 .text
 
-# Description: When given a set of coordinates corresponding to an index in the board, sees if that index is empty, and if so, adds 1 to the "fill" variable.
-#
-# Pseudo representation:
-#	void edgeCheck(int index, int fill) {
-#		if (board[index] != 0) {fill++;}
-#	}
-# Inputs:
-#   $a0 - Index of the edge
-#   $a1 - Fill variable to be updated
-#
-# Outputs:
-#   None
-# Registers modified: none
+main:
+	jal board_initialize_board
 
-computer_edge_check:
+	jal test_init	
 
-	jal board_get_board	# Gets board into v0
-		
-	add $a0, $a0, $v0	# a0 = location of board[index]
-	lb $a0, ($a0)		# a0 = board[index]
+	jal computer_calculate_best_score
+	move $a0, $v0
+	li $v0, 1
+	syscall
 	
-	seq $a0, $a0, 0x20	# a0 = (a0 == ' ')
-	beq $a0, 1, computer_edge_check_exit # a0 == ' ' go to the exit
-	addi $a1, $a1, 1 	# if board[index] != 0, fill++;
+	jal print_break
 	
-	computer_edge_check_exit:
-	
-	jr $ra 			# return
-	
+	move $a0, $v1
+	li $v0, 1
+	syscall
 
-# Description: Returns the index of the array to access for a given set of coordinates.
-#
-# Pseudo representation:
-#	int getIndex(int a, int b) { a is column (a0), b is row (a1)
-# 		return a + (b*MAX_COL);
-# 	}
-# Inputs:
-#   $a0 - Col index of the edge
-#   $a1 - Row index of the edge
-# Outputs:
-#   $v0 - Index for the coordinates
-# Registers modified: None 
-computer_get_Index:
-
-	addi $sp, -4 		# Make room in the stack
-	sw $ra, 0($sp) 		# Save the return address
-	
-	jal board_get_column_size # v0 now holds the column size
-	move $t5, $v0 		# t1 = column size
-	
-	add $t4, $zero, $a0 	# t4 = a
-	mulu $t5, $t5, $a1 	# t5 = b * column size
-	
-	add $t4, $t4, $t5 	# a = a + b * (MAX_COL)
-	add $v0, $zero, $t0
-	
-	lw $ra, 0($sp)          # Load return address
-        addi $sp, $sp, 4        # Restore the stack
-
-        jr $ra                  # Return
-       
-       
-# Description: When given an edge coordinates, determines if it would be a bad idea to select that edge.
-#
-# Pseudo representation:
-#	bool throwing(int arr[17][13], int a, int b) {
-#
-#	int filled = 0; //tells us how many other adjacent edges that could be used to make a box are filled in.
-#
-#	//Handle the edge cases (literally). 
-#	//Top row: row = 0;
-#	if (b == 0) {
-#		checks bottom left and right edges tells you if you're throwing
-#	}
-#
-#	//Bottom row; row = 12
-#	else if (b == 12) {
-#		checks top left and right edges tells you if you're throwing
-#	}
-#
-#	//Left column; col = 0
-#	else if (a == 0) {
-#		checks top bottom and right edges tells you if you're throwing
-#	}
-#
-#	//Right column; col = 16
-#		checks top bottom and left edges tells you if you're throwing
-#	}
-#
-#	//We are not on the edge of the board. Each of these edges connects TWO boxes. If either of them allows the player to finish a box, they are certified throwing, and we return true.
-#	else {
-#
-#		//If b is even, it connects two boxes in the middle vertically.
-#		if (b % 2 == 0) {
-#			checks top box and bottom box, if either is throwing it tells you
-#		}
-#		//If b is odd, it connects two boxes in the middle horizontally.
-#		else {
-#			checks left box and right box, if either is throwing it tells you
-#		}
-#	}
-#
-#}
-# Inputs:
-#   $a0 - Col index of the edge
-#   $a1 - Row index of the edge
-# Outputs:
-#   $v0 - 1 if you are throwing, 0 if you aren't throwing
-# Registers modified: $s0 
-computer_throwing:
-	
-	addi $sp, -4 		# Make room in the stack
-	sw $ra, 0($sp) 		# Save the return address
-
-	jal board_get_board
-	move $s0, $v0 		# $s0 = the board array
-
-	move $t0, $a0		# $t0 = a (Should not be manipulated, if you want to mess with the value, use a0)
-	move $t1, $a1		# $t1 = b (Should not be manipulated, if you want to mess with the value, use a1)
-	addi $t2, $t2, $zero	# $t2 = filled
-	
-	# $t6 = MAX_COLS - 1
-	jal board_get_column_size
-	move $t6, $v0
-	subu $t6, $t6, 1
-	
-	# $t7 = MAX_ROWS - 1
-	jal board_get_row_size
-	move $t7, $v0
-	subu $t7, $t7, 1
-	
-	# Handle edges. 
-	beqz $t1, computer_throwing_top_row 		# Top edge: b = 0
-	beq $t1, $t7, computer_throwing_bottom_row 	# Bottom edge: b = MAX_ROWS - 1
-	beqz $t0, computer_throwing_left_col		# Left edge: a = 0
-	beq $t0, $t6, computer_throwing_right_col	# Right edge: a = MAX_COLS - 1
-	
-	# If we're here, then there's two possibilities. Our edge either connects two boxes vertically or it connects them horizontally. If b is even, it's vertical, otherwise horizontal
-	
-	div $t1, 2 					# LO = t1 % 2.
-	mflo $t3 					# t3 = t1 % 2
-	
-	beq $t3, 1, computer_throwing_horizontal_connection # If t3 = 1, b is odd and as a result we're connecting two boxes horizontally.
-	j computer_throwing_vertical_connection 	# Otherwise, we're connecting two boxes vertically.
-	
+	jal board_print_board
 
 	
+	j exit
 	
-	computer_throwing_top_row:			# This handles the checking if the edge we're checking is in the top edge.
+computer_calculate_best_score:
+	addi $sp, $sp, -8
+	sw $s0, 4($sp)
+	sw $ra, 0($sp)
+	
+	la $s0, board_array
+	
+	move $a0, $s0
+	jal computer_find_max_loop 
+	
+	c_fb_finish:
+			
+		lw $ra, 0($sp)
+		lw $s0, 4($sp)
+		addi $sp, $sp, 8
 		
-		# Left edge
-		subi $a0, $t0, 1			# a = a-1
-		addi $a1, $t1, 1			# b = b+1
-		jal computer_get_index			# v0 = desired index
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-		# Right edge
-		addi $a0, $t0, 1			# a = a+1, b doesn't change.
-		jal computer_get_index			# v0 = the index we're trying to access
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-		# Bottom edge
-		addi $a0, $t0, $zero			# a = a
-		addi $a1, $t1, 2			# b = b+2
-		jal computer_get_index			# v0 = desired index
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-				
-		beq $t2, 2, computer_throwing_yes	# At this point, if filled = 2, we are throwing	
-		addi $v0, $zero, $zero			# If filled != 2, we aren't throwing by doing this, so we set our return to zero
-		j computer_throwing_exit		# Go to return
-		
-	computer_throwing_bottom_row:			# This handles the checking if the edge we're checking is in the bottom edge.
+		jr $ra
+	
+# a0 board address
+computer_find_max_loop:
+	addi $sp, $sp, -36
+	sw $s7, 32($sp)
+	sw $s6, 28($sp)
+	sw $s5, 24($sp)
+	sw $s4, 20($sp)
+	sw $s3, 16($sp)	
+	sw $s2, 12($sp)
+	sw $s1, 8($sp)
+	sw $s0, 4($sp)
+	sw $ra, 0($sp)
 
-		# Left edge
-		subi $a0, $t0, 1			# a = a-1
-		subi $a1, $t1, 1			# b = b-1
-		jal computer_get_index			# v0 = desired index
+	# Index address
+	move $s0, $a0
+	addi $s0, $s0, 1
+
+	# Row index
+	li $s1, 0
+	
+	# Col index
+	li $s2, 0
+	
+	# Save row size
+	lb $s3, board_row_size
+	
+ 	# Save column size 
+	lb $s4, board_column_size
+	
+	# Save highest score
+	li $s5, -1
+	
+	# Save highest row
+	li $s6, -1
+	
+	# Save highest column
+	li $s7, -1
+
+	c_fml_row: 
+		sge $t0, $s1, $s3
+		bne $t0, $zero, c_fml_close
 		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
+		andi $t0, $s1, 0x01
+		bne $t0, $zero, c_fml_odd_row
+		li $s2, 1
+		j c_fml_col
 		
-		# Right edge
-		addi $a0, $t0, 1			# a = a+1, b doesn't change.
-		jal computer_get_index			# v0 = the index we're trying to access
+		c_fml_odd_row: 
+			li $s2, 0
 		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
+		c_fml_col:
+			sge $t0, $s2, $s4
+			bne $t0, $zero, c_fml_next_row
+			
+			lb $t0, ($s0)
+			bne $t0, 0x20, c_fml_next_col
+			
+			move $a0, $s0
+		 	move $a1, $s1
+		 	move $a2, $s2
+		 	
+		 	# Save both row and col size in a3
+		 	sll $a3, $s3, 8
+		 	addu $a3, $a3, $s4
+		 	
+			jal computer_get_edge_score
+			
+			move $a0, $v0
+			li $v0, 1
+			syscall
+			move $v0, $a0
+			
+			# Get output, compare, if current score is 1 and last is 2 return the 1
+			move $a0, $s5
+			move $a1, $v0
+			jal computer_compare_max_current_score
+			
+			beq $v0, $s5, c_fml_next_col
+			move $s5, $v0
+			move $s6, $s1
+			move $s7, $s2
+			
+			
+		c_fml_next_col:
+			addi $s2, $s2, 2
+			addi $s0, $s0, 2
+			
+			j c_fml_col	
+
+	c_fml_next_row:
+		addi $s1, $s1, 1
+		j c_fml_row
+
+	c_fml_close:
+		jal print_break
+		move $v0, $s7
 		
-		# Top edge
-		addi $a0, $t0, $zero			# a = a
-		subi $a1, $t1, 2			# b = b-2
-		jal computer_get_index			# v0 = desired index
+		move $v1, $s6
 		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-				
-		beq $t2, 2, computer_throwing_yes	# At this point, if filled = 2, we are throwing	
-		addi $v0, $zero, $zero			# If filled != 2, we aren't throwing by doing this, so we set our return to zero
-		j computer_throwing_exit		# Go to return
-		
-	computer_throwing_left_col:			# This handles the checking if the edge we're checking is in the left edge.
-		
-		# Top edge
-		addi $a0, $t0, 1			# a = a+1
-		subi $a1, $t1, 1			# b = b-1
-		jal computer_get_index			# v0 = desired index
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-		# Bottom edge
-		addi $a1, $t1, 1			# b = b+1, a doesn't change.
-		jal computer_get_index			# v0 = the index we're trying to access
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-		# Right edge
-		addi $a0, $t0, 2			# a = a+2
-		addi $a1, $t1, $zero			# b = b
-		jal computer_get_index			# v0 = desired index
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-				
-		beq $t2, 2, computer_throwing_yes	# At this point, if filled = 2, we are throwing	
-		addi $v0, $zero, $zero			# If filled != 2, we aren't throwing by doing this, so we set our return to zero
-		j computer_throwing_exit		# Go to return
+		lw $ra, 0($sp)
+		lw $s0, 4($sp)
+		lw $s1, 8($sp)
+		lw $s2, 12($sp)
+		lw $s3, 16($sp)
+		lw $s4, 20($sp)
+		lw $s5, 24($sp)
+		lw $s6, 28($sp)
+		lw $s7, 32($sp)
+		addi $sp, $sp, 36 
+
+		jr $ra 
+
+# a0 - index
+# a1 - current row
+# a2 - current col
+# a3 - max row : max col
+computer_get_edge_score:
+	addi $sp, $sp, -28
+	sw $s5, 24($sp)
+	sw $s4, 20($sp)
+	sw $s3, 16($sp)
+	sw $s2, 12($sp)
+	sw $s1, 8($sp)
+	sw $s0, 4($sp)
+	sw $ra, 0($sp)
+
+	move $s0, $a0 # index
+	move $s1, $a1 # current row
+	move $s2, $s2 # current col
+	
+	# Column size
+	andi $s3, $a3, 0xFF
+
+	# Row size
+	srl $s4, $a3, 8
+
+	# Score increment
 
 
-	computer_throwing_right_col:			# This handles the checking if the edge we're checking is in the right edge.
+	andi $t0, $s1, 0x01
+	bne $t0, $zero, c_ges_left_right
 	
-		# Top edge
-		subi $a0, $t0, 1			# a = a-1
-		subi $a1, $t1, 1			# b = b-1
-		jal computer_get_index			# v0 = desired index
+	c_ges_top_down:
+		li $s5, 0
+		c_ges_check_top:
+			slti $t0, $s1, 2
+			bne $t0, $zero, c_ges_check_bottom
+			
+			subu $t0, $s0, $s3
+			subu $a0, $t0, $s3
+			
+			addi $a1, $t0, 1
+			subi $a2, $t0, 1
+			
+			jal computer_check_box
+			add $s5, $s5, $v0
+			
+			beq $s5, 2, c_ges_ct_throwing
+			
+			j c_ges_check_bottom
+			
+			c_ges_ct_throwing:
+				li $s5, 0
+				j c_ges_exit
 		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
+		c_ges_check_bottom:
+			subiu $t1, $s4, 2
+			sgt $t0, $s1, $t1
+			bne $t0, $zero, c_ges_exit
+			
+			addu $t0, $s0, $s3
+			addu $a0, $t0, $s3
+			
+			addi $a1, $t0, 1
+			subi $a2, $t0, 1
 		
-		# Bottom edge
-		addi $a1, $t1, 1			# b = b+1, a doesn't change.
-		jal computer_get_index			# v0 = the index we're trying to access
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-		# Left edge
-		subi $a0, $t0, 2			# a = a-2
-		addi $a1, $t1, $zero			# b = b
-		jal computer_get_index			# v0 = desired index
-		
-		move $a0, $v0				# Argument 1 = index
-		addi $a1, $zero, $t2			# Argument 2 = filled
-		jal computer_edge_check			# if board[index] != 0, a1++
-		move $t2, $a1				# Move it back to the filled variable
-		
-				
-		beq $t2, 2, computer_throwing_yes	# At this point, if filled = 2, we are throwing	
-		addi $v0, $zero, $zero			# If filled != 2, we aren't throwing by doing this, so we set our return to zero
-		j computer_throwing_exit		# Go to return
+			jal computer_check_box
+			add $s5, $s5, $v0
+			
+			beq $s5, 2, c_ges_cb_throwing
+			
+			j c_ges_exit
+			
+			c_ges_cb_throwing:
+				li $s5, 0
+			
+			
+			j c_ges_exit
 	
-	computer_throwing_vertical_connection:		# Handles an edge not on the outer edge of the board which connects two boxes vertically.
+	c_ges_left_right:
+		li $s5, 0
+		c_ges_check_right:
+			subiu $t1, $s3, 2
+			sgt $t0, $s2, $t1
+			bne $t0, $zero c_ges_check_left
+			
+			addi $a0, $s0, 2
+	
+			addi $a1, $s0, 1
+			subu $a1, $a1, $s3
+			
+			addi $a2, $s0, 1
+			addu $a2, $a2, $s3
+			
+			jal computer_check_box
+			add $s5, $s5, $v0
+			
+			
+			beq $s5, 2, c_ges_cr_throwing
+			
+			j c_ges_check_left
+			
+			c_ges_cr_throwing:
+				li $s5, 0
+				j c_ges_exit			
+			
+		c_ges_check_left:
+			slti $t0, $s2, 2
+			bne $t0, $zero, c_ges_exit
+			
+			subi $a0, $s0, 2
+			
+			subi $a1, $s0, 1
+			subu $a1, $a1, $s3
+			
+			subi $a2, $s0, 1
+			addu $a2, $a2, $s3
+		
+	 		jal computer_check_box
+	 		add $s5, $s5, $v0
+	 		
+	 		beq $s5, 2, c_ges_cl_throwing
+	 		
+	 		j c_ges_exit
+	 		
+	 		c_ges_cl_throwing:
+	 			li $s5, 0
+	 		
+	c_ges_exit:
+		move $v0, $s5
+	
+		lw $ra, 0($sp)
+		lw $s0, 4($sp)
+		lw $s1, 8($sp)
+		lw $s2, 12($sp)
+		lw $s3, 16($sp)
+		lw $s4, 20($sp)
+		lw $s5, 24($sp)
+		addi $sp, $sp, 28
+		
+		jr $ra
+		
+		
+# a0 far edge
+# a1 adjacent edge 1
+# a2 adjacent edge 2
+computer_check_box:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+	li $v0, 0
+	
+	c_cb_far:
+		lb $t0, ($a0)
+
+		seq $t0, $t0, 0x20
+		bne $t0, $zero, c_cb_adjacent			
+		addi $v0, $v0, 1
+	
+	c_cb_adjacent:
+		lb $t0, ($a1)
+		
+		seq $t0, $t0, 0x20
+		bne $t0, $zero, c_cb_next_adjacent
+		addi $v0, $v0, 1
+		
+	c_cb_next_adjacent:
+		lb $t0, ($a2)
+
+		seq $t0, $t0, 0x20
+		bne $t0, $zero, c_cb_exit
+		addi $v0, $v0, 1
+		
+	c_cb_exit:
+		lw $ra, 0($sp)
+		addi $sp, $sp, 4
+		
+		jr $ra
+	
+	
 	
 
-		computer_throwing_vertical_top:		# First, we'll do the top box. This label just exists to make indentation a lot easier to understand.
-		
-			# Left edge
-			subi $a0, $t0, 1		# a = a-1
-			subi $a1, $t1, 1		# b = b-1
-			jal computer_get_index		# v0 = desired index
-		
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Right edge
-			addi $a0, $t0, 1		# a = a+1, b doesn't change.
-			jal computer_get_index		# v0 = the index we're trying to access
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Top edge
-			addi $a0, $t0, $zero		# a = a
-			subi $a1, $t1, 2		# b = b-2
-			jal computer_get_index		# v0 = desired index
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-					
-			beq $t2, 2, computer_throwing_yes # At this point, if filled = 2, we are throwing	
-			addi $t2, $zero, $zero		# If we are not throwing, we set filled back to zero and move onto the bottom box.
-			
-		computer_throwing_vertical_bottom:	# Now we check the bottom box. This label just exists to make indentation a lot easier to understand.
-		
-			# Left edge
-			subi $a0, $t0, 1		# a = a-1
-			addi $a1, $t1, 1		# b = b+1
-			jal computer_get_index		# v0 = desired index
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Right edge
-			addi $a0, $t0, 1		# a = a+1, b doesn't change.
-			jal computer_get_index		# v0 = the index we're trying to access
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Bottom edge
-			addi $a0, $t0, $zero		# a = a
-			addi $a1, $t1, 2		# b = b+2
-			jal computer_get_index		# v0 = desired index
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-					
-			beq $t2, 2, computer_throwing_yes	# At this point, if filled = 2, we are throwing	
-			addi $v0, $zero, $zero		# If filled != 2, we aren't throwing by doing this, so we set our return to zero
-			j computer_throwing_exit	# Go to return
-				
-			
-	computer_throwing_horizontal_connection:
+# a0 - the current max
+# a1 - the recent score
+computer_compare_max_current_score:
+	# Get output, compare, if current score is 1 and last is 2 return the 1
+	beq $a1, 6, c_cmcs_return_recent
 	
-		computer_throwing_horizontal_left:	# First, we'll do the left box. This label just exists to make indentation a lot easier to understand.
-			
-			# Top edge
-			subi $a0, $t0, 1		# a = a-1
-			subi $a1, $t1, 1		# b = b-1
-			jal computer_get_index		# v0 = desired index
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Bottom edge
-			addi $a1, $t1, 1		# b = b+1, a doesn't change.
-			jal computer_get_index		# v0 = the index we're trying to access
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Left edge
-			subi $a0, $t0, 2		# a = a-2
-			addi $a1, $t1, $zero		# b = b
-			jal computer_get_index		# v0 = desired index
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-					
-			beq $t2, 2, computer_throwing_yes	# At this point, if filled = 2, we are throwing	
-			addi $t2, $zero, $zero		# If we are not throwing, we set filled back to zero and move onto the right box
-			
-		computer_throwing_horizontal_right:	# Now we check the right box. This label just exists to make indentation a lot easier to understand.
-			
-			# Top edge
-			addi $a0, $t0, 1		# a = a+1
-			subi $a1, $t1, 1		# b = b-1
-			jal computer_get_index		# v0 = desired index
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Bottom edge
-			addi $a1, $t1, 1		# b = b+1, a doesn't change.
-			jal computer_get_index		# v0 = the index we're trying to access
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			# Right edge
-			addi $a0, $t0, 2		# a = a+2
-			addi $a1, $t1, $zero		# b = b
-			jal computer_get_index		# v0 = desired index
-			
-			move $a0, $v0			# Argument 1 = index
-			addi $a1, $zero, $t2		# Argument 2 = filled
-			jal computer_edge_check		# if board[index] != 0, a1++
-			move $t2, $a1			# Move it back to the filled variable
-			
-			beq $t2, 2, computer_throwing_yes	# At this point, if filled = 2, we are throwing	
-			addi $v0, $zero, $zero		# If filled != 2, we aren't throwing by doing this, so we set our return to zero
-			j computer_throwing_exit	# Go to return
 	
-	computer_throwing_yes: 				# Yes, you are indeed throwing
-	addi $v0, $zero, 1				# We will return 1
-	j computer_throwing_exit			# Go to exit
+		sub $t0, $a1, $a0
+		bgt $t0, $zero, c_cmcs_return_recent
 	
-	computer_throwing_exit:
-	
-        lw $ra, 0($sp)          			# Load return address
-        addi $sp, $sp, 4        			# Restore the stack
 
-        jr $ra                  			# Return	
+		move $v0, $a0
+		jr $ra
+	
+	c_cmcs_return_recent:
+		move $v0, $a1
+		jr $ra
+
+computer_submit_move:
+	li $t0, 'X'
+#	
+
+	
+	jr $ra
+	
+
+
+test_init:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+	
+
+	li $a0, 1
+	li $a1, 0
+	li $a2, 0
+	# jal board_update_edge
+	
+	li $a0, 0
+	li $a1, 1
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 1
+	li $a1, 2
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 3
+	li $a1, 0
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 3
+	li $a1, 2
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 4
+	li $a1, 1
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 13
+	li $a1, 0
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 14
+	li $a1, 1
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 12
+	li $a1, 1
+	li $a2, 1
+	jal board_update_edge
+	
+	li $a0, 14
+	li $a1, 3
+	li $a2, 0
+	jal board_update_edge
+	
+	li $a0, 13
+	li $a1, 4
+	li $a2, 0
+	# jal board_update_edge
+	
+	li $a0, 12
+	li $a1, 3
+	li $a2, 0
+	jal board_update_edge
+	
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	
+	jr $ra

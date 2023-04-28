@@ -17,44 +17,101 @@ main:
 
         jal board_initialize_board
         
-	jal score_test_init
-	jal score_test
-	move $s0, $v0
-	
-	jal board_print_board
-	
-	move $a0, $s0
-	jal print_int
+        #jal score_test_init
+        #jal score_test
         
-        # jal game_loop
+        #jal test_init
 
-	# jal score_print_final_scores
+        #jal board_print_board
+        
+                                
+        jal game_loop
+
+        # jal score_print_final_scores
         
         j exit
 
 game_loop: # THIS IS JUST A DRAFT, CHANGE IT TO HOW THE IMPLEMENTATION IS DONE -ND
-	addi $sp, $sp, -4
-	sw $ra, 0($sp)
+        addi $sp, $sp, -4
+        
+        sw $ra, 0($sp)
+        
+        li $s5, 0
+        li $s6, 0
+        
+        li $s7, 0
 
-	jal board_print_board
-	
-	jal input_get_user_input
-	move $a0, $v0   # X index to change
-        move $a1, $v1   # Y Index to change
-        li $a2, 0       # 0 is player, 1 is Computer
-        jal board_update_edge  # update edge
-        
-        # jal computer_get_computer_move
-        # move $a0, $v0   # X index to change
-        # move $a1, $v1   # Y Index to change
-        # li $a2, 1       # 0 is player, 1 is Computer
-        # jal board_update_edge  # update edge
-        
-        # jal score_update_score
-        
-        # jal score_is_game_over
-        # beq $v0, $zero, game_loop
-        
+        m_gl_start: 
+            jal board_print_board
+            
+            bne $s7, $zero, m_gl_computer_turn
+            m_gl_user_turn:
+                jal input_get_user_input
+                move $s3, $v0
+                move $s4, $v1
+                
+                move $a0, $v0   # X index to change
+                move $a1, $v1   # Y Index to change
+                li $a2, 0       # 0 is player, 1 is Computer
+                jal board_update_edge  # update edge 
+                
+                #input  $a0 $a1 x y cooards for edge that was placed  $a2-current player value, $a3-current player score
+                #output $v0 next player value, $v1 current player score (after edge placed)
+                move $a0, $s3 # Last placed X
+                move $a1, $s4 # Last placed Y
+		move $a2, $s7 # Player value
+                move $a3, $s5 # Player Score
+                jal score_update_score
+                move $s7, $v0 ###############################
+                move $s5, $v1 # Save score
+                
+                addu $t0, $s5, $s6
+		bne $t0, 48, m_gl_start
+                
+                j m_gl_exit
+            
+            m_gl_computer_turn:
+                jal computer_calculate_best_score
+                move $s3, $v0
+                move $s4, $v1
+                
+                move $a0, $s3   # X index to change 
+                move $a1, $s4   # Y Index to change
+                li $a2, 1      # 0 is player, 1 is Computer
+                jal board_update_edge  # update edge
+                
+                move $a0, $s3 # Last x (col)
+                move $a1, $s4 # Last y (row)
+		move $a2, $s7 # Player 
+                move $a3, $s6 # PC Score
+                jal score_update_score
+		move $s7, $v0 #####################################
+                move $s6, $v1
+                
+                
+	            move $a0, $s5
+        	    li $v0, 1
+	            syscall
+            
+	            jal print_break
+            
+	            move $a0, $s6
+	            li $v0, 1
+        	    syscall
+            
+	            jal print_break
+	            
+	            addu $t0, $s5, $s6
+	            bne $t0, 48, m_gl_start
+                
+                j m_gl_exit
+            
+            
+            
+            
+            
+        m_gl_exit:
+
         lw $ra, 0($sp)
         addi $sp, $sp, 4
         
@@ -122,199 +179,3 @@ exit:
         li $v0, 10                   # Syscall for program term
         syscall                      # Exit program
 
-
-score_test_init:
-	addi $sp, $sp, -4
-	sw $ra, 0($sp)
-
-	li $a0, 1
-	li $a1, 0
-	li $a2, 0
-	jal board_update_edge
-	
-	li $a0, 1
-	li $a1, 4
-	li $a2, 0
-	jal board_update_edge
-	
-	li $a0, 1
-	li $a1, 2
-	li $a2, 0
-	jal board_update_edge
-	
-	li $a0, 0
-	li $a1, 1
-	li $a2, 0
-	jal board_update_edge
-	
-	li $a0, 2
-	li $a1, 1
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 2
-	li $a1, 3
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 0
-	li $a1, 3
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 5
-	li $a1, 2
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 4
-	li $a1, 3
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 6
-	li $a1, 3
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 5
-	li $a1, 4
-	li $a2, 1
-	jal board_update_edge
-	
-	##
-	
-	li $a0, 15
-	li $a1, 12
-	li $a2, 0
-	jal board_update_edge
-	
-	li $a0, 15
-	li $a1, 10
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 16
-	li $a1, 11
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 14
-	li $a1, 11
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 15
-	li $a1, 12
-	li $a2, 1
-	jal board_update_edge
-	
-	##
-	 
-	li $a0, 9
-	li $a1, 12
-	li $a2, 0
-	jal board_update_edge
-	
-	li $a0, 9
-	li $a1, 10
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 10
-	li $a1, 11
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 8
-	li $a1, 11
-	li $a2, 1
-	jal board_update_edge
-	
-	li $a0, 9
-	li $a1, 12
-	li $a2, 1
-	jal board_update_edge
-	
-	lw $ra, 0($sp)
-	addi $sp, $sp, 4
-	
-	jr $ra
-
-score_test:
-	addi $sp, $sp, -4
-	sw $ra, 0($sp)
-
-	#input  $a0 $a1 x y cooards for edge that was placed  $a2-current player value, $a3-current player score 
-	#output $v0 next player value, $v1 current player score (after edge placed)
-
-	li $s6, 0 # comp score
-	
-	li $s0, 96
-	li $s1, 97
-	li $s2, 98
-
-	
-	# Test double
-	li $a0, 1
-	li $a1, 2
-	li $a2, 0
-	move $a3, $s6
-	jal score_update_score
-	move $s6, $v1
-	
-	# Test vert
-	li $a0, 4
-	li $a1, 3
-	li $a2, 0
-	move $a3, $s6
-	jal score_update_score
-	move $s6, $v1
-		
-	# Test horiz
-	li $a0, 5
-	li $a1, 4
-	li $a2, 0
-	move $a3, $s6
-	jal score_update_score
-	move $s6, $v1
-	
-	# Test top edge
-	li $a0, 1
-	li $a1, 0
-	li $a2, 0
-	move $a3, $s6
-	jal score_update_score
-	move $s6, $v1
-	
-	# Test left edge
-	li $a0, 0
-	li $a1, 1
-	li $a2, 0
-	move $a3, $s6
-	jal score_update_score
-	move $s6, $v1
-	
-	# Test right edge
-	li $a0, 16
-	li $a1, 11
-	li $a2, 0
-	move $a3, $s6
-	jal score_update_score
-	move $s6, $v1
-	
-	# Test bottom edge
-	li $a0, 9
-	li $a1, 12
-	li $a2, 0
-	move $a3, $s6
-	jal score_update_score
-	move $s6, $v1
-	
-	move $v0, $s6
-	
-	
-	lw $ra, 0($sp)########################
-	addi $sp, $sp, 4
-	
-	jr $ra

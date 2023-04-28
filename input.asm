@@ -413,8 +413,7 @@ input_is_col_valid:
         sw $ra, 0($sp)                  # Save return address
 
         # Get max column index
-        jal board_get_column_size       # Get column size
-        move $t0, $v0                   # Save to t0
+        lb $t0, board_column_size       # Get column size
         subi $t0, $t0, 1                # Subtract 1
 
         # Use v0 as a boolean
@@ -458,8 +457,7 @@ input_is_row_valid:
         sw $ra, 0($sp)                  # Save return address
 
         # Get max row index
-        jal board_get_row_size          # Get column size
-        move $t0, $v0                   # Save to t0
+        lb $t0, board_row_size          # Get column size
         subi $t0, $t0, 1                # Subtract 1
 
         # Use v0 as a boolean
